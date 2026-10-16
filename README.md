@@ -1,4 +1,4 @@
-﻿# Abhyudaya Preschool — Website & Database Integration
+# Abhyudaya Preschool — Website & Database Integration
 
 A premium preschool website with full Supabase PostgreSQL database integration, secure enquiry submission, and admin management.
 
@@ -7,7 +7,6 @@ A premium preschool website with full Supabase PostgreSQL database integration, 
 ## Quick Start
 
 ```bash
-cd "Premium Preschool Website (3)/Premium Preschool Website"
 npm install
 npm run dev
 ```
@@ -83,12 +82,11 @@ Restart `npm run dev`. The amber warning banner on the Contact page will disappe
 
 1. Push project to GitHub
 2. Import repo in Vercel
-3. Set **Root Directory**: `Premium Preschool Website (3)/Premium Preschool Website`
-4. Build Command: `npm run build` | Output: `dist`
-5. Add environment variables in Vercel → Settings → Environment Variables:
+3. Build Command: `npm run build` | Output: `dist`
+4. Add environment variables in Vercel → Settings → Environment Variables:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_PUBLISHABLE_KEY`
-6. Deploy
+5. Deploy
 
 ---
 

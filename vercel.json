@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/((?!assets|favicon|logo|gallery|lotus|rainbow|android-chrome|apple-touch|robots|site.webmanifest).*)", "destination": "/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {

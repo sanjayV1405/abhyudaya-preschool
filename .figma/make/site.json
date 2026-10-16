@@ -1,0 +1,11 @@
+{
+  "title": "Abhyudaya Preschool | Daycare, Playgroup, Nursery, LKG & UKG, Perumanallur",
+  "description": "This premium preschool website offers parents a warm, engaging platform to explore programs, view activities, and connect with caring educators in a safe environment.",
+  "robots": {
+    "index": true
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

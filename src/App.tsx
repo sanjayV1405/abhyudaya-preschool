@@ -16,6 +16,9 @@ import {
   TabsContent,
 } from './components/ui/tabs'
 
+// Cache-busting parameter for static assets so phones and browsers never get stuck with stale cached files
+const ASSET_V = '?v=2'
+
 // ── Decorative helpers ──────────────────────────────────────────────────────
 
 function Cloud({ style }: { style?: React.CSSProperties }) {
@@ -362,7 +365,7 @@ function LogoIntroOverlay({
             >
               {/* Tight-cropped veena — 931×692 aspect */}
               <img
-                src="/logo_veena_cropped.png"
+                src={`/logo_veena_cropped.png${ASSET_V}`}
                 alt="Veena — musical beginning"
                 style={{ display: 'block', width: '96%', height: '96%', objectFit: 'contain' }}
               />
@@ -385,7 +388,7 @@ function LogoIntroOverlay({
               }}
             >
               <img
-                src="/logo_a_symbol.png"
+                src={`/logo_a_symbol.png${ASSET_V}`}
                 alt="Abhyudaya A with Veena"
                 className="w-full h-full object-contain"
                 style={{ display: 'block' }}
@@ -411,7 +414,7 @@ function LogoIntroOverlay({
             }}
           >
             <img
-              src="/logo_wordmark.png"
+              src={`/logo_wordmark.png${ASSET_V}`}
               alt="ABHYUDAYA"
               className="w-full h-auto object-contain"
               style={{ display: 'block' }}
@@ -466,7 +469,7 @@ function Navbar({
           >
             {/* Standalone Red A Symbol with Veena */}
             <img
-              src="/logo_a_symbol.png"
+              src={`/logo_a_symbol.png${ASSET_V}`}
               alt="Abhyudaya Emblem"
               className={`w-auto object-contain transition-all duration-300 ${scrolled ? 'h-6 sm:h-7' : 'h-7 sm:h-9'
                 } ${introPhase !== 'complete' && introPhase !== 'settle'
@@ -486,7 +489,7 @@ function Navbar({
               }}
             >
               <img
-                src="/logo_wordmark.png"
+                src={`/logo_wordmark.png${ASSET_V}`}
                 alt="ABHYUDAYA"
                 className={`w-auto object-contain ${scrolled ? 'h-2.5 sm:h-3' : 'h-3 sm:h-4'
                   }`}
@@ -675,7 +678,7 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
             <div className="relative max-w-full max-h-full flex flex-col items-center justify-center translate-x-12 sm:translate-x-20 translate-y-8 sm:translate-y-12">
               {/* Logo on top of lotus - bigger & shifted up */}
               <img
-                src="/logo_transparent.png"
+                src={`/logo_transparent.png${ASSET_V}`}
                 alt="Abhyudaya Logo"
                 className="w-60 sm:w-76 md:w-[380px] h-auto object-contain mb-1 sm:mb-2 -translate-y-4 sm:-translate-y-6 z-10"
                 style={{
@@ -685,7 +688,7 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
 
               {/* Lotus flower */}
               <img
-                src="/lotus.png"
+                src={`/lotus.png${ASSET_V}`}
                 alt="Lotus Illustration"
                 className="w-auto h-56 sm:h-72 md:h-[340px] object-contain"
                 style={{
@@ -799,7 +802,7 @@ function AboutPage() {
     <div
       className="min-h-screen relative overflow-hidden"
       style={{
-        backgroundImage: "linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(253, 250, 246, 0.65) 40%, rgba(240, 248, 244, 0.8) 100%), url('/rainbow.jpg')",
+        backgroundImage: `linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(253, 250, 246, 0.65) 40%, rgba(240, 248, 244, 0.8) 100%), url('/rainbow.jpg${ASSET_V}')`,
         backgroundSize: 'contain',
         backgroundPosition: 'center top',
         backgroundRepeat: 'no-repeat',
@@ -884,11 +887,11 @@ function AboutPage() {
 const GALLERY_CATS = ['All', 'Classroom', 'Activities', 'Outdoor', 'Mealtime', 'Meditation']
 
 const GALLERY_ITEMS = [
-  { cat: 'Classroom', emoji: '🏫', label: 'Our Colourful Classroom', bg: '#ffd6b0', localImg: '/gallery1.jpg' },
-  { cat: 'Activities', emoji: '💃', label: 'Fun Movement Activity', bg: '#e0d0f8', localImg: '/gallery2.jpg' },
-  { cat: 'Outdoor', emoji: '🎈', label: 'Balloon Day Celebration', bg: '#b8f0d8', localImg: '/gallery3.jpg' },
-  { cat: 'Meditation', emoji: '🧘', label: 'Morning Meditation', bg: '#b8d8f8', localImg: '/gallery4.jpg' },
-  { cat: 'Mealtime', emoji: '🍱', label: 'Snack Time Together', bg: '#ffd8e4', localImg: '/gallery5.jpg' },
+  { cat: 'Classroom', emoji: '🏫', label: 'Our Colourful Classroom', bg: '#ffd6b0', localImg: `/gallery1.jpg${ASSET_V}` },
+  { cat: 'Activities', emoji: '💃', label: 'Fun Movement Activity', bg: '#e0d0f8', localImg: `/gallery2.jpg${ASSET_V}` },
+  { cat: 'Outdoor', emoji: '🎈', label: 'Balloon Day Celebration', bg: '#b8f0d8', localImg: `/gallery3.jpg${ASSET_V}` },
+  { cat: 'Meditation', emoji: '🧘', label: 'Morning Meditation', bg: '#b8d8f8', localImg: `/gallery4.jpg${ASSET_V}` },
+  { cat: 'Mealtime', emoji: '🍱', label: 'Snack Time Together', bg: '#ffd8e4', localImg: `/gallery5.jpg${ASSET_V}` },
 ]
 
 function GalleryPage() {
@@ -900,7 +903,7 @@ function GalleryPage() {
     <div
       className="min-h-screen relative overflow-hidden"
       style={{
-        backgroundImage: "linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(253, 250, 246, 0.65) 40%, rgba(240, 248, 244, 0.8) 100%), url('/rainbow.jpg')",
+        backgroundImage: `linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(253, 250, 246, 0.65) 40%, rgba(240, 248, 244, 0.8) 100%), url('/rainbow.jpg${ASSET_V}')`,
         backgroundSize: 'contain',
         backgroundPosition: 'center top',
         backgroundRepeat: 'no-repeat',
@@ -1122,7 +1125,7 @@ function ProgramsPage({
     <div
       className="min-h-screen relative overflow-hidden"
       style={{
-        backgroundImage: "linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(253, 250, 246, 0.65) 40%, rgba(240, 248, 244, 0.8) 100%), url('/rainbow.jpg')",
+        backgroundImage: `linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(253, 250, 246, 0.65) 40%, rgba(240, 248, 244, 0.8) 100%), url('/rainbow.jpg${ASSET_V}')`,
         backgroundSize: 'contain',
         backgroundPosition: 'center top',
         backgroundRepeat: 'no-repeat',
@@ -1349,7 +1352,7 @@ I have submitted a campus visit request:
     <div
       className="min-h-screen relative overflow-hidden"
       style={{
-        backgroundImage: "linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(253, 250, 246, 0.65) 40%, rgba(240, 248, 244, 0.8) 100%), url('/rainbow.jpg')",
+        backgroundImage: `linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(253, 250, 246, 0.65) 40%, rgba(240, 248, 244, 0.8) 100%), url('/rainbow.jpg${ASSET_V}')`,
         backgroundSize: 'contain',
         backgroundPosition: 'center top',
         backgroundRepeat: 'no-repeat',
@@ -1856,7 +1859,7 @@ function Footer({
           <div>
             <div className="flex items-center gap-3 mb-4">
               <img
-                src="/logo_transparent.png"
+                src={`/logo_transparent.png${ASSET_V}`}
                 alt="Abhyudaya Preschool Logo"
                 className="h-20 w-auto object-contain"
                 style={{ filter: 'drop-shadow(0px 1px 6px rgba(255,255,255,0.25))' }}

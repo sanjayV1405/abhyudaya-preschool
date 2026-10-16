@@ -3,12 +3,13 @@ dist/
 build/
 .cache/
 # Secret env files — never commit these
+.env
 .env.local
 .env.*.local
 .env.production
 .env.production.local
 # Allow .env.example (placeholder only)
-# .env.example is intentionally NOT excluded
+!.env.example
 .vite/
 vite.config.*.timestamp-*
 *.tsbuildinfo

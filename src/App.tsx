@@ -786,10 +786,25 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
 // ── About Page ───────────────────────────────────────────────────────────────
 
 function AboutPage() {
-  const pillars = [
-    { icon: '🔭', title: 'Our Vision', color: '#e0d0f8', desc: 'To be the most cherished early learning community where every child grows into a joyful, confident, and compassionate human being.' },
-    { icon: '🎯', title: 'Our Mission', color: '#b8f0d8', desc: 'To nurture curiosity and creativity through play-based learning, ensuring each child feels safe, loved, and celebrated for who they are.' },
+  const learningMaterials = [
+    { title: 'Montessori Learning Aids', icon: '📐', desc: 'Self-correcting sensory and practical life materials' },
+    { title: 'Puzzles & Cognitive Games', icon: '🧩', desc: 'Critical thinking, memory and shape recognition' },
+    { title: 'Building Blocks & Construction', icon: '🧱', desc: 'Spatial awareness, architectural play and motor skills' },
+    { title: 'Sensory Play Materials', icon: '🎨', desc: 'Tactile exploration through touch, textures and color' },
+    { title: 'Art & Craft Resources', icon: '✂️', desc: 'Vibrant materials encouraging boundless self-expression' },
+    { title: 'Storybooks & Picture Books', icon: '📖', desc: 'Rich vocabulary, early imagination and empathy' },
   ]
+
+  const explorationActivities = [
+    { name: 'Music', icon: '🎵', color: '#ffd8e4' },
+    { name: 'Dance', icon: '💃', color: '#e0d0f8' },
+    { name: 'Art', icon: '🎨', color: '#ffd6b0' },
+    { name: 'Storytelling', icon: '📖', color: '#b8d8f8' },
+    { name: 'Cooking', icon: '🧑‍🍳', color: '#fff0b0' },
+    { name: 'Gardening', icon: '🌱', color: '#b8f0d8' },
+    { name: 'Free Play', icon: '🎈', color: '#ffd6b0' },
+  ]
+
   const values = [
     { icon: '🛡️', title: 'Safe & Secure', color: '#b8d8f8', desc: 'Round-the-clock CCTV, child-safe furniture, secured entry gates and regular safety drills.' },
     { icon: '💛', title: 'Caring Teachers', color: '#fff0b0', desc: 'Our educators are trained in early childhood development and treat every child with warmth, patience and respect.' },
@@ -808,19 +823,101 @@ function AboutPage() {
           <p className="text-sm sm:text-base md:text-lg text-[#6a5a7a] max-w-xl mx-auto font-medium px-2 sm:px-0">Nurturing tiny hearts with love, structure, and wonder in SS Nagar, Perumanallur.</p>
         </ScrollReveal>
 
-        {/* Vision & Mission */}
+        {/* Our Vision & Our Mission */}
         <ScrollReveal delay={100} className="grid md:grid-cols-2 gap-6 mb-14">
-          {pillars.map(({ icon, title, color, desc }) => (
-            <div key={title} className="card-hover rounded-3xl p-8 shadow-sm border border-white" style={{ backgroundColor: color + 'aa' }}>
-              <div className="text-5xl mb-4">{icon}</div>
-              <h3 className="text-2xl font-black text-[#3d2a50] mb-3" style={{ fontFamily: 'Nunito, sans-serif' }}>{title}</h3>
-              <p className="text-[#5a4a6a] leading-relaxed">{desc}</p>
+          {/* Vision Card */}
+          <div className="card-hover rounded-3xl p-7 sm:p-9 shadow-sm border border-white bg-gradient-to-br from-[#f9f5ff] via-[#f5edfd] to-[#ede3fa] flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="text-4xl">🌟</span>
+                <div>
+                  <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-[#5a3a8a]/10 text-[#5a3a8a] inline-block">
+                    Our Vision
+                  </span>
+                  <h3 className="text-2xl sm:text-3xl font-black text-[#3d2a50] mt-1" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                    Igniting a Lifelong Love for Learning
+                  </h3>
+                </div>
+              </div>
+              <p className="text-[#5a4a6a] text-sm sm:text-base leading-relaxed mb-4">
+                At <strong>Abhyudaya Preschool</strong>, our vision is to ignite a lifelong love for learning in every child by creating a joyful and nurturing environment where curiosity blossoms and confidence shines. We envision a place where little minds are encouraged to explore, imagine, question, and dream freely.
+              </p>
+              <p className="text-[#5a4a6a] text-sm sm:text-base leading-relaxed">
+                We strive to shape children who are not only academically prepared but also emotionally strong, socially responsible, and rooted in values of kindness and respect. By laying a strong foundation during these precious early years, we aim to empower each child to grow into a happy, independent, and compassionate individual ready to embrace the future with courage and enthusiasm.
+              </p>
             </div>
-          ))}
+            <div className="flex flex-wrap gap-2 pt-6 mt-6 border-t border-[#e2d5f2]">
+              {['Curiosity Blossoms', 'Confidence Shines', 'Kindness & Respect', 'Emotional Strength'].map(tag => (
+                <span key={tag} className="text-xs font-bold px-3 py-1 rounded-full bg-white/90 text-[#5a3a8a] border border-[#e0d0f8] shadow-2xs">
+                  ✨ {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Mission Card */}
+          <div className="card-hover rounded-3xl p-7 sm:p-9 shadow-sm border border-white bg-gradient-to-br from-[#f0fbf6] via-[#e5f8ee] to-[#d6f3e3] flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="text-4xl">💛</span>
+                <div>
+                  <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-[#1a6a45]/10 text-[#1a6a45] inline-block">
+                    Our Mission
+                  </span>
+                  <h3 className="text-2xl sm:text-3xl font-black text-[#1e3d2f] mt-1" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                    A Safe, Child-Centered Foundation
+                  </h3>
+                </div>
+              </div>
+              <p className="text-[#3a5a4a] text-sm sm:text-base leading-relaxed mb-4">
+                At <strong>Abhyudaya Preschool</strong>, our mission is to provide a safe, caring, and child-centered environment where every child feels happy and valued. We believe in learning through play, exploration, and meaningful hands-on experiences that support the holistic development of each child — socially, emotionally, physically, and cognitively.
+              </p>
+              <p className="text-[#3a5a4a] text-sm sm:text-base leading-relaxed">
+                We strive to build confidence, strong communication skills, creativity, and curiosity while instilling values such as kindness, respect, sharing, and responsibility. By working closely with parents, we aim to nurture each child’s unique potential and lay a strong foundation for lifelong learning.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 pt-6 mt-6 border-t border-[#c5e6d6]">
+              {['Holistic Development', 'Hands-On Learning', 'Sharing & Responsibility', 'Parent Partnership'].map(tag => (
+                <span key={tag} className="text-xs font-bold px-3 py-1 rounded-full bg-white/90 text-[#1a6a45] border border-[#b8f0d8] shadow-2xs">
+                  🌱 {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        </ScrollReveal>
+
+        {/* A Sacred Beginning — Prospectus Pooja */}
+        <ScrollReveal delay={120} className="mb-14">
+          <div className="rounded-3xl p-6 sm:p-9 shadow-sm border border-[#fdd8b5] bg-gradient-to-br from-[#fffdfa] via-[#fff8ee] to-[#fbf5ff] relative overflow-hidden">
+            <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-[#ffd6b0] to-[#fff0b0] flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-sm border-2 border-white">
+                🪔
+              </div>
+              <div className="flex-1 text-center md:text-left">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f4a26b]/15 text-[#b45309] text-xs font-black uppercase tracking-wider mb-2">
+                  <span>✨</span> A Sacred Milestone
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-black text-[#4a2a60] mb-3" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                  A Sacred Beginning — Prospectus Pooja
+                </h3>
+                <p className="text-[#5a4a6a] text-sm sm:text-base leading-relaxed mb-3">
+                  Every meaningful journey begins with blessings, gratitude, and hope. As <strong>Abhyudaya Preschool</strong> steps into a new space, we begin this beautiful chapter with a <strong>Prospectus Pooja</strong>, seeking divine grace for our vision of nurturing young minds.
+                </p>
+                <p className="text-[#5a4a6a] text-sm sm:text-base leading-relaxed mb-4">
+                  May this space be filled with laughter, curiosity, creativity, and love, and may it become a second home where little learners blossom into confident individuals.
+                </p>
+                <div className="inline-block px-5 py-2.5 rounded-2xl bg-white/85 border border-[#f5d0b0] shadow-2xs">
+                  <span className="font-bold text-sm sm:text-base text-[#5a3a8a]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                    ✨ A new place. A new beginning. Endless possibilities for little learners.
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </ScrollReveal>
 
         {/* Story */}
-        <ScrollReveal delay={150} className="bg-white rounded-3xl p-8 mb-14 shadow-sm border border-[#f0e8f8] flex flex-col md:flex-row gap-8 items-center">
+        <ScrollReveal delay={140} className="bg-white rounded-3xl p-8 mb-14 shadow-sm border border-[#f0e8f8] flex flex-col md:flex-row gap-8 items-center">
           <div className="flex-shrink-0 animate-float">
             <TeddyMascot size={140} />
           </div>
@@ -832,6 +929,98 @@ function AboutPage() {
             <p className="text-[#5a4a6a] leading-relaxed">
               Led by Bharani S, our passionate team is dedicated to holistic early childhood development. From joyful play to structured learning, every moment at Abhyudaya is crafted to help your little one bloom. We're not just a school — we're family.
             </p>
+          </div>
+        </ScrollReveal>
+
+        {/* Infrastructure, Play & Learning Materials */}
+        <ScrollReveal delay={160} className="mb-14">
+          <div className="text-center mb-8">
+            <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full bg-[#5a3a8a]/10 text-[#5a3a8a] inline-flex items-center gap-1.5 mb-2">
+              <span>🌟</span> Campus Environment
+            </span>
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-black text-[#5a3a8a]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+              Infrastructure, Play &amp; Learning Materials
+            </h3>
+            <p className="text-sm sm:text-base text-[#6a5a7a] max-w-2xl mx-auto mt-2 leading-relaxed">
+              At <strong>Abhyudaya Preschool</strong>, we believe that the environment plays a vital role in a child’s learning journey. Our thoughtfully designed infrastructure creates a safe, joyful, and stimulating space where children can explore, play, and learn naturally.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {/* Educational Learning Materials */}
+            <div className="card-hover bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-[#f0e8f8] flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">🧩</span>
+                  <div>
+                    <h4 className="text-xl font-black text-[#3d2a50]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                      Educational Learning Materials
+                    </h4>
+                    <p className="text-xs text-[#8a7a9a]">Age-appropriate tools for natural cognitive growth</p>
+                  </div>
+                </div>
+                <p className="text-xs sm:text-sm text-[#5a4a6a] mb-4">
+                  Our classrooms are equipped with a variety of age-appropriate learning materials, including:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-5">
+                  {learningMaterials.map(({ title, icon, desc }) => (
+                    <div key={title} className="p-3 rounded-2xl bg-[#fdfaff] border border-[#f0e6f8] flex items-start gap-2.5">
+                      <span className="text-2xl shrink-0 mt-0.5">{icon}</span>
+                      <div>
+                        <div className="font-bold text-xs text-[#3d2a50]">{title}</div>
+                        <div className="text-[11px] text-[#7a6a8a] mt-0.5 leading-snug">{desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-[#b8f0d8]/35 border border-[#9ee4c3] text-xs text-[#165b3b] font-medium leading-relaxed">
+                💡 <strong>Developmental Growth:</strong> These materials help develop fine motor skills, problem-solving abilities, creativity, and independent thinking.
+              </div>
+            </div>
+
+            {/* Activity & Exploration Spaces */}
+            <div className="card-hover bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-[#f0e8f8] flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">🌿</span>
+                  <div>
+                    <h4 className="text-xl font-black text-[#3d2a50]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                      Activity &amp; Exploration Spaces
+                    </h4>
+                    <p className="text-xs text-[#8a7a9a]">Hands-on spaces to discover natural talents</p>
+                  </div>
+                </div>
+                <p className="text-xs sm:text-sm text-[#5a4a6a] leading-relaxed mb-4">
+                  Children enjoy hands-on experiences through activities like <strong>music, dance, art, storytelling, cooking, gardening, and free play</strong>, which help them discover their interests and talents.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-6">
+                  {explorationActivities.map(({ name, icon, color }) => (
+                    <div
+                      key={name}
+                      className="p-3 rounded-2xl text-center shadow-2xs border border-white/80 transition-all card-hover"
+                      style={{ backgroundColor: color + '55' }}
+                    >
+                      <div className="text-2xl sm:text-3xl mb-1">{icon}</div>
+                      <div className="font-black text-xs text-[#3d2a50]" style={{ fontFamily: 'Nunito, sans-serif' }}>{name}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* A Space That Feels Like Home */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#ffd6b0]/40 via-[#ffe8d4]/40 to-[#e0d0f8]/40 border border-[#ffd6b0]/70 flex items-center gap-3.5">
+                <span className="text-3xl shrink-0">💛</span>
+                <div>
+                  <div className="font-black text-sm text-[#4a2a60]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                    A Space That Feels Like Home
+                  </div>
+                  <div className="text-xs text-[#5a4a6a] mt-0.5 leading-relaxed">
+                    Our goal is to create a nurturing environment where children feel safe, happy, and excited to learn every day.
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </ScrollReveal>
 
@@ -1114,21 +1303,113 @@ function ProgramsPage({
     : programs.filter(p => p.category === selectedCategory)
 
   return (
-    <div
-      className="min-h-screen relative overflow-hidden"
-      style={{
-        backgroundImage: `linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(253, 250, 246, 0.65) 40%, rgba(240, 248, 244, 0.8) 100%), url('/rainbow.jpg${ASSET_V}')`,
-        backgroundSize: 'contain',
-        backgroundPosition: 'center top',
-        backgroundRepeat: 'no-repeat',
-      }}
-    >
+    <div className="min-h-screen relative overflow-hidden about-page-bg">
       <div className="rainbow-bar h-1.5" />
-      <div className="max-w-6xl mx-auto px-4 py-20 relative z-10">
-        <ScrollReveal className="text-center mb-10">
-          <span className="text-5xl">🎒</span>
-          <h2 className="text-4xl sm:text-5xl font-black text-[#5a3a8a] mt-3 mb-3" style={{ fontFamily: 'Nunito, sans-serif' }}>Our Programs &amp; Curriculum</h2>
-          <p className="text-[#6a5a7a] max-w-xl mx-auto">Thoughtfully designed for every stage of your child's early years — from Daycare to UKG and beyond</p>
+      <div className="max-w-6xl mx-auto px-4 pt-24 pb-14 sm:py-20 relative z-10">
+        <ScrollReveal className="text-center mb-10 sm:mb-12">
+          <span className="text-5xl inline-block mb-1 sm:mb-2 animate-bounce-soft">🎒</span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#5a3a8a] mb-3" style={{ fontFamily: 'Nunito, sans-serif' }}>Our Programs &amp; Curriculum</h2>
+          <p className="text-sm sm:text-base text-[#6a5a7a] max-w-xl mx-auto font-medium px-2 sm:px-0">Thoughtfully designed for every stage of your child's early years — from Daycare to UKG and beyond</p>
+        </ScrollReveal>
+
+        {/* Our Curriculum Philosophy & Blended Approach */}
+        <ScrollReveal delay={50} className="mb-12">
+          <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-sm border border-[#e0d0f8]">
+            <div className="text-center max-w-3xl mx-auto mb-8">
+              <span className="text-xs font-black uppercase tracking-wider px-3.5 py-1 rounded-full bg-[#5a3a8a]/10 text-[#5a3a8a] inline-flex items-center gap-1.5 mb-2">
+                <span>🌈</span> Our Curriculum
+              </span>
+              <h3 className="text-2xl sm:text-3xl font-black text-[#5a3a8a] mt-1 mb-3" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                Blending the Best Practices for Balanced Growth
+              </h3>
+              <p className="text-sm sm:text-base text-[#5a4a6a] leading-relaxed mb-3">
+                At <strong>Abhyudaya Preschool</strong>, our curriculum is thoughtfully designed by blending the best practices of <strong>Montessori philosophy</strong>, <strong>Waldorf approach</strong>, and <strong>internationally recognized early childhood education standards</strong>.
+              </p>
+              <p className="text-sm sm:text-base text-[#7a5a8a] font-medium">
+                We believe that every child learns differently. Our integrated approach ensures balanced development — nurturing the head, heart, and hands.
+              </p>
+            </div>
+
+            {/* Head, Heart & Hands */}
+            <div className="grid sm:grid-cols-3 gap-4 mb-8">
+              <div className="p-5 rounded-2xl bg-[#e0d0f8]/30 border border-[#e0d0f8] text-center card-hover">
+                <div className="text-3xl mb-2">🧠</div>
+                <div className="font-black text-sm text-[#3d2a50]" style={{ fontFamily: 'Nunito, sans-serif' }}>Nurturing the Head</div>
+                <div className="text-xs text-[#6a5a7a] mt-1">Inquiry, critical thinking, curiosity, and joyful cognitive exploration.</div>
+              </div>
+              <div className="p-5 rounded-2xl bg-[#ffd6b0]/30 border border-[#ffd6b0] text-center card-hover">
+                <div className="text-3xl mb-2">❤️</div>
+                <div className="font-black text-sm text-[#3d2a50]" style={{ fontFamily: 'Nunito, sans-serif' }}>Nurturing the Heart</div>
+                <div className="text-xs text-[#6a5a7a] mt-1">Emotional security, values of kindness, empathy, sharing, and respect.</div>
+              </div>
+              <div className="p-5 rounded-2xl bg-[#b8f0d8]/30 border border-[#b8f0d8] text-center card-hover">
+                <div className="text-3xl mb-2">✋</div>
+                <div className="font-black text-sm text-[#3d2a50]" style={{ fontFamily: 'Nunito, sans-serif' }}>Nurturing the Hands</div>
+                <div className="text-xs text-[#6a5a7a] mt-1">Sensory play, fine motor skills, creative arts, and practical life activities.</div>
+              </div>
+            </div>
+
+            {/* Standards & Focus Dual Cards */}
+            <div className="grid md:grid-cols-2 gap-6 pt-6 border-t border-[#f0e8f8]">
+              {/* International Early Learning Standards */}
+              <div className="p-5 sm:p-6 rounded-2xl bg-[#fdfaff] border border-[#f0e6f8] flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <span className="text-2xl">🌍</span>
+                    <h4 className="font-black text-base text-[#3d2a50]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                      International Early Learning Standards
+                    </h4>
+                  </div>
+                  <p className="text-xs text-[#6a5a7a] mb-4">
+                    Our program aligns with global early childhood frameworks to ensure age-appropriate learning milestones in:
+                  </p>
+                  <div className="space-y-2">
+                    {[
+                      { icon: '🗣️', label: 'Language & Communication' },
+                      { icon: '🔤', label: 'Early Literacy & Numeracy' },
+                      { icon: '🤝', label: 'Social & Emotional Development' },
+                      { icon: '🏃', label: 'Physical Development' },
+                      { icon: '💡', label: 'Cognitive & Creative Thinking' },
+                    ].map(({ icon, label }) => (
+                      <div key={label} className="flex items-center gap-2.5 text-xs font-bold text-[#4a3a60] bg-white p-2.5 rounded-xl border border-[#ece4f5]">
+                        <span className="text-base">{icon}</span>
+                        <span>{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Our Focus */}
+              <div className="p-5 sm:p-6 rounded-2xl bg-[#fbfdf9] border border-[#e4f2e8] flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <span className="text-2xl">💛</span>
+                    <h4 className="font-black text-base text-[#1e3d2f]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                      Our Focus
+                    </h4>
+                  </div>
+                  <p className="text-xs text-[#4a6a5a] mb-4">
+                    We ensure:
+                  </p>
+                  <div className="space-y-2">
+                    {[
+                      { icon: '🎲', label: 'Play-based and experiential learning' },
+                      { icon: '🔍', label: 'Inquiry and exploration' },
+                      { icon: '🕊️', label: 'Value-based education' },
+                      { icon: '👤', label: 'Individual attention' },
+                      { icon: '🎒', label: 'School readiness skills' },
+                    ].map(({ icon, label }) => (
+                      <div key={label} className="flex items-center gap-2.5 text-xs font-bold text-[#1a5a3a] bg-white p-2.5 rounded-xl border border-[#d6eedc]">
+                        <span className="text-base">{icon}</span>
+                        <span>{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </ScrollReveal>
 
         {/* Program Category Tabs */}

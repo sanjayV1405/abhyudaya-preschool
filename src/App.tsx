@@ -17,7 +17,7 @@ import {
 } from './components/ui/tabs'
 
 // Cache-busting parameter for static assets so phones and browsers never get stuck with stale cached files
-const ASSET_V = '?v=2'
+const ASSET_V = '?v=3'
 
 // ── Decorative helpers ──────────────────────────────────────────────────────
 
@@ -665,36 +665,42 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
           {/* Lotus Image on Right Side of Home Page with logo_transparent.png on top */}
           <div className="hero-anim-mascot relative flex items-center justify-center min-h-[290px] sm:min-h-[340px] md:h-[480px] py-4 sm:py-6 md:py-0 md:pt-10">
             {/* Soft radiant ambient glow behind lotus */}
-            <div className="absolute inset-0 -z-10 flex items-center justify-center pointer-events-none translate-x-0 md:translate-x-12 lg:translate-x-20 translate-y-0 md:translate-y-12 lg:translate-y-16">
+            <div className="absolute inset-0 -z-10 flex items-center justify-center pointer-events-none translate-x-0 md:translate-x-4 lg:translate-x-6 translate-y-0 md:translate-y-8 lg:translate-y-10">
               <div
-                className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-full"
+                className="lotus-glow-anim w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-full"
                 style={{
-                  background: 'radial-gradient(circle, rgba(255, 230, 240, 0.7) 0%, rgba(224, 208, 248, 0.5) 45%, transparent 70%)',
-                  filter: 'blur(25px)',
+                  background: 'radial-gradient(circle, rgba(255, 235, 190, 0.6) 0%, rgba(255, 215, 235, 0.5) 35%, rgba(224, 208, 248, 0.4) 60%, transparent 75%)',
+                  filter: 'blur(28px)',
                 }}
               />
             </div>
 
-            <div className="relative max-w-full max-h-full flex flex-col items-center justify-center translate-x-0 md:translate-x-12 lg:translate-x-20 translate-y-0 md:translate-y-8 lg:translate-y-12">
-              {/* Logo on top of lotus - bigger & shifted up */}
+            <div className="relative max-w-full max-h-full flex flex-col items-center justify-center translate-x-0 md:translate-x-4 lg:translate-x-6 translate-y-0 md:translate-y-6 lg:translate-y-8">
+              {/* Logo on top of lotus - optically centered on mobile above lotus, unchanged on desktop */}
               <img
                 src={`/logo_transparent.png${ASSET_V}`}
                 alt="Abhyudaya Logo"
-                className="w-56 sm:w-72 md:w-[380px] h-auto object-contain mb-1 sm:mb-2 -translate-y-3 sm:-translate-y-5 md:-translate-y-6 z-10"
+                className="w-56 sm:w-72 md:w-[380px] h-auto object-contain mb-1 sm:mb-2 -translate-y-3 sm:-translate-y-5 md:-translate-y-6 -translate-x-2.5 sm:-translate-x-2 md:translate-x-0 z-10"
                 style={{
                   filter: 'drop-shadow(0 6px 16px rgba(180, 40, 40, 0.28))',
                 }}
               />
 
-              {/* Lotus flower */}
-              <img
-                src={`/lotus.png${ASSET_V}`}
-                alt="Lotus Illustration"
-                className="w-auto h-48 sm:h-64 md:h-[340px] object-contain"
-                style={{
-                  filter: 'drop-shadow(0 12px 24px rgba(120, 60, 140, 0.15))',
-                }}
-              />
+              {/* Blooming Sacred Lotus flower with delicate ambient particles */}
+              <div className="relative flex items-center justify-center">
+                {/* Floating subtle ambient particles around lotus */}
+                <span className="absolute -top-2 right-4 w-2.5 h-2.5 rounded-full bg-amber-300/80 blur-[0.5px] particle-float-1 pointer-events-none" />
+                <span className="absolute top-8 -left-3 w-3 h-3 rounded-full bg-pink-300/80 blur-[0.5px] particle-float-2 pointer-events-none" />
+                <span className="absolute -bottom-2 -left-1 w-2 h-2 rounded-full bg-purple-300/75 blur-[0.5px] particle-float-3 pointer-events-none" />
+                <span className="absolute -bottom-1 -right-2 w-2.5 h-2.5 rounded-full bg-sky-300/80 blur-[0.5px] particle-float-4 pointer-events-none" />
+                <span className="absolute top-1/2 -right-5 w-2 h-2 rounded-full bg-rose-300/70 blur-[0.5px] particle-float-2 pointer-events-none" />
+
+                <img
+                  src={`/lotus.png${ASSET_V}`}
+                  alt="Blooming Lotus"
+                  className="lotus-bloom-anim w-auto h-48 sm:h-64 md:h-[340px] object-contain"
+                />
+              </div>
             </div>
           </div>
         </div>

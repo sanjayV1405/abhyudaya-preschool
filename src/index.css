@@ -129,6 +129,105 @@ h1, h2, h3, h4, h5 {
   animation: hero-scale-fade 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
 }
 
+/* Sacred Lotus Natural Bloom Animation */
+@keyframes lotus-bloom {
+  0% {
+    opacity: 0.15;
+    transform: scale(0.68) translateY(14px);
+    filter: blur(4px) brightness(1.15) drop-shadow(0 0 16px rgba(255, 210, 120, 0.6));
+  }
+  40% {
+    opacity: 0.85;
+    transform: scale(0.92, 0.94) translateY(4px);
+    filter: blur(1px) brightness(1.06) drop-shadow(0 6px 20px rgba(255, 170, 210, 0.4));
+  }
+  75% {
+    opacity: 1;
+    transform: scale(1.025, 1.015) translateY(-3px);
+    filter: blur(0px) brightness(1.02) drop-shadow(0 10px 26px rgba(220, 130, 210, 0.3));
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0px) brightness(1) drop-shadow(0 12px 24px rgba(120, 60, 140, 0.16));
+  }
+}
+
+@keyframes lotus-breathe {
+  0%, 100% {
+    transform: scale(1) translateY(0);
+    filter: drop-shadow(0 12px 24px rgba(120, 60, 140, 0.16));
+  }
+  50% {
+    transform: scale(1.018) translateY(-3px);
+    filter: drop-shadow(0 16px 30px rgba(210, 110, 190, 0.26));
+  }
+}
+
+.lotus-bloom-anim {
+  transform-origin: center 85%;
+  animation: 
+    lotus-bloom 1.8s cubic-bezier(0.2, 0.9, 0.3, 1) 0.15s both,
+    lotus-breathe 6.5s ease-in-out infinite 2.0s;
+  will-change: transform, filter, opacity;
+}
+
+/* Radiant Ambient Pulse behind Blooming Lotus */
+@keyframes lotus-radiance {
+  0% {
+    opacity: 0.3;
+    transform: scale(0.7);
+  }
+  45% {
+    opacity: 0.85;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+}
+
+@keyframes lotus-radiance-breathe {
+  0%, 100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.92;
+    transform: scale(1.08);
+  }
+}
+
+.lotus-glow-anim {
+  animation: 
+    lotus-radiance 1.8s cubic-bezier(0.2, 0.9, 0.3, 1) 0.15s both,
+    lotus-radiance-breathe 6.5s ease-in-out infinite 2.0s;
+}
+
+/* Gentle drifting aura particles around blooming lotus */
+@keyframes particle-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.55; }
+  50% { transform: translate(6px, -12px) scale(1.2); opacity: 0.9; }
+}
+@keyframes particle-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+  50% { transform: translate(-8px, -15px) scale(1.25); opacity: 0.95; }
+}
+@keyframes particle-drift-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.45; }
+  50% { transform: translate(7px, -9px) scale(1.15); opacity: 0.85; }
+}
+@keyframes particle-drift-4 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+  50% { transform: translate(-5px, -14px) scale(1.2); opacity: 0.88; }
+}
+
+.particle-float-1 { animation: particle-drift-1 5.5s ease-in-out infinite; }
+.particle-float-2 { animation: particle-drift-2 6.8s ease-in-out infinite 0.7s; }
+.particle-float-3 { animation: particle-drift-3 6.0s ease-in-out infinite 1.4s; }
+.particle-float-4 { animation: particle-drift-4 7.2s ease-in-out infinite 2.1s; }
+
 .rainbow-text {
   background: linear-gradient(135deg, #7ed8a0, #f4a26b, #b48de8, #5baae8, #f5d86b);
   -webkit-background-clip: text;

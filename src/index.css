@@ -130,46 +130,121 @@ h1, h2, h3, h4, h5 {
 }
 
 /* Sacred Lotus Natural Bloom Animation */
-@keyframes lotus-bloom {
-  0% {
-    opacity: 0.15;
-    transform: scale(0.68) translateY(14px);
-    filter: blur(4px) brightness(1.15) drop-shadow(0 0 16px rgba(255, 210, 120, 0.6));
-  }
-  40% {
-    opacity: 0.85;
-    transform: scale(0.92, 0.94) translateY(4px);
-    filter: blur(1px) brightness(1.06) drop-shadow(0 6px 20px rgba(255, 170, 210, 0.4));
-  }
-  75% {
-    opacity: 1;
-    transform: scale(1.025, 1.015) translateY(-3px);
-    filter: blur(0px) brightness(1.02) drop-shadow(0 10px 26px rgba(220, 130, 210, 0.3));
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-    filter: blur(0px) brightness(1) drop-shadow(0 12px 24px rgba(120, 60, 140, 0.16));
-  }
-}
-
 @keyframes lotus-breathe {
   0%, 100% {
     transform: scale(1) translateY(0);
     filter: drop-shadow(0 12px 24px rgba(120, 60, 140, 0.16));
   }
   50% {
-    transform: scale(1.018) translateY(-3px);
-    filter: drop-shadow(0 16px 30px rgba(210, 110, 190, 0.26));
+    transform: scale(1.016) translateY(-2.5px);
+    filter: drop-shadow(0 16px 30px rgba(210, 110, 190, 0.25));
   }
 }
 
-.lotus-bloom-anim {
-  transform-origin: center 85%;
-  animation: 
-    lotus-bloom 1.8s cubic-bezier(0.2, 0.9, 0.3, 1) 0.15s both,
-    lotus-breathe 6.5s ease-in-out infinite 2.0s;
-  will-change: transform, filter, opacity;
+/* Botanical Multi-Layer Petal Unfolding */
+@keyframes petal-left-bloom {
+  0% {
+    opacity: 0.3;
+    transform: rotate(-12deg) scale(0.72) translate(-6px, 12px);
+  }
+  45% {
+    opacity: 0.9;
+    transform: rotate(-3deg) scale(0.94) translate(-1px, 3px);
+  }
+  75% {
+    opacity: 1;
+    transform: rotate(0.8deg) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(0deg) scale(1) translate(0, 0);
+  }
+}
+
+@keyframes petal-right-bloom {
+  0% {
+    opacity: 0.3;
+    transform: rotate(12deg) scale(0.72) translate(6px, 12px);
+  }
+  45% {
+    opacity: 0.9;
+    transform: rotate(3deg) scale(0.94) translate(1px, 3px);
+  }
+  75% {
+    opacity: 1;
+    transform: rotate(-0.8deg) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(0deg) scale(1) translate(0, 0);
+  }
+}
+
+@keyframes petal-core-bloom {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.66) translateY(10px);
+    filter: brightness(1.22) drop-shadow(0 0 14px rgba(255, 215, 120, 0.7));
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(0.92) translateY(2px);
+    filter: brightness(1.1) drop-shadow(0 4px 16px rgba(255, 185, 140, 0.5));
+  }
+  78% {
+    opacity: 1;
+    transform: scale(1.025) translateY(-2px);
+    filter: brightness(1.03) drop-shadow(0 6px 18px rgba(255, 180, 200, 0.35));
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: brightness(1) drop-shadow(0 8px 20px rgba(200, 120, 180, 0.18));
+  }
+}
+
+@keyframes petal-base-bloom {
+  0% {
+    opacity: 0.35;
+    transform: scale(0.82) translateY(8px);
+  }
+  55% {
+    opacity: 0.9;
+    transform: scale(0.98) translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.lotus-layer-base {
+  transform-origin: 50% 90%;
+  animation: petal-base-bloom 1.9s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+  will-change: transform, opacity;
+}
+
+.lotus-layer-left {
+  transform-origin: 52% 82%;
+  animation: petal-left-bloom 2.1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+  will-change: transform, opacity;
+}
+
+.lotus-layer-right {
+  transform-origin: 48% 82%;
+  animation: petal-right-bloom 2.1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+  will-change: transform, opacity;
+}
+
+.lotus-layer-core {
+  transform-origin: 50% 75%;
+  animation: petal-core-bloom 2.3s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both;
+  will-change: transform, opacity, filter;
+}
+
+.lotus-flower-container {
+  animation: lotus-breathe 6.5s ease-in-out infinite 2.4s;
+  will-change: transform, filter;
 }
 
 /* Radiant Ambient Pulse behind Blooming Lotus */
@@ -227,6 +302,34 @@ h1, h2, h3, h4, h5 {
 .particle-float-2 { animation: particle-drift-2 6.8s ease-in-out infinite 0.7s; }
 .particle-float-3 { animation: particle-drift-3 6.0s ease-in-out infinite 1.4s; }
 .particle-float-4 { animation: particle-drift-4 7.2s ease-in-out infinite 2.1s; }
+
+/* Reduced Motion Override for Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .lotus-layer-base,
+  .lotus-layer-left,
+  .lotus-layer-right,
+  .lotus-layer-core,
+  .lotus-flower-container,
+  .lotus-glow-anim,
+  .particle-float-1,
+  .particle-float-2,
+  .particle-float-3,
+  .particle-float-4,
+  .hero-anim-badge,
+  .hero-anim-title,
+  .hero-anim-desc,
+  .hero-anim-cta,
+  .hero-anim-stats,
+  .hero-anim-mascot,
+  .animate-float,
+  .animate-drift,
+  .animate-twinkle {
+    animation: none !important;
+    transform: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+}
 
 .rainbow-text {
   background: linear-gradient(135deg, #7ed8a0, #f4a26b, #b48de8, #5baae8, #f5d86b);

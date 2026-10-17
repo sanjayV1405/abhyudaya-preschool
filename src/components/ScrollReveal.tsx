@@ -33,11 +33,10 @@ export function ScrollReveal({
         ...style,
         opacity: inView ? 1 : 0,
         transform: inView ? 'translateY(0) scale(1)' : initialTransform,
-        filter: inView ? 'blur(0px)' : 'blur(4px)',
         transitionDuration: `${duration}ms`,
         transitionDelay: `${delay}ms`,
         transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
-        willChange: 'transform, opacity, filter',
+        willChange: 'transform, opacity',
       }}
     >
       {children}

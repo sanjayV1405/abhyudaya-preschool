@@ -17,7 +17,7 @@ import {
 } from './components/ui/tabs'
 
 // Cache-busting parameter for static assets so phones and browsers never get stuck with stale cached files
-const ASSET_V = '?v=3'
+const ASSET_V = '?v=4'
 
 // ── Decorative helpers ──────────────────────────────────────────────────────
 
@@ -461,7 +461,11 @@ function Navbar({
           }`}
       >
         {/* Logo */}
-        <button onClick={() => setActive('Home')} className="flex items-center group focus:outline-none">
+        <button
+          onClick={() => setActive('Home')}
+          className="flex items-center group focus:outline-none -translate-x-1 sm:-translate-x-1.5 md:translate-x-0 transition-transform duration-200"
+          aria-label="Abhyudaya Preschool Home"
+        >
           <div
             ref={navbarLogoRef}
             className="flex flex-col items-center select-none transition-transform duration-200 group-hover:scale-105"
@@ -686,8 +690,8 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
                 }}
               />
 
-              {/* Blooming Sacred Lotus flower with delicate ambient particles */}
-              <div className="relative flex items-center justify-center">
+              {/* Blooming Sacred Lotus flower with botanical petal layers */}
+              <div className="lotus-flower-container relative flex items-center justify-center">
                 {/* Floating subtle ambient particles around lotus */}
                 <span className="absolute -top-2 right-4 w-2.5 h-2.5 rounded-full bg-amber-300/80 blur-[0.5px] particle-float-1 pointer-events-none" />
                 <span className="absolute top-8 -left-3 w-3 h-3 rounded-full bg-pink-300/80 blur-[0.5px] particle-float-2 pointer-events-none" />
@@ -695,10 +699,48 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
                 <span className="absolute -bottom-1 -right-2 w-2.5 h-2.5 rounded-full bg-sky-300/80 blur-[0.5px] particle-float-4 pointer-events-none" />
                 <span className="absolute top-1/2 -right-5 w-2 h-2 rounded-full bg-rose-300/70 blur-[0.5px] particle-float-2 pointer-events-none" />
 
+                {/* Botanical Petal Layer 1: Grounding base violet petals */}
+                <img
+                  src={`/lotus_base.png${ASSET_V}`}
+                  alt=""
+                  aria-hidden="true"
+                  className="lotus-layer-base absolute inset-0 w-full h-full object-contain pointer-events-none"
+                />
+
+                {/* Botanical Petal Layer 2: Left wing unfolding petals */}
+                <img
+                  src={`/lotus_left_wing.png${ASSET_V}`}
+                  alt=""
+                  aria-hidden="true"
+                  className="lotus-layer-left absolute inset-0 w-full h-full object-contain pointer-events-none"
+                />
+
+                {/* Botanical Petal Layer 3: Right wing unfolding petals */}
+                <img
+                  src={`/lotus_right_wing.png${ASSET_V}`}
+                  alt=""
+                  aria-hidden="true"
+                  className="lotus-layer-right absolute inset-0 w-full h-full object-contain pointer-events-none"
+                />
+
+                {/* Botanical Petal Layer 4: Inner glowing golden core & stamen */}
+                <img
+                  src={`/lotus_core.png${ASSET_V}`}
+                  alt=""
+                  aria-hidden="true"
+                  className="lotus-layer-core absolute inset-0 w-full h-full object-contain pointer-events-none"
+                />
+
+                {/* Master composite lotus blossom image */}
                 <img
                   src={`/lotus.png${ASSET_V}`}
                   alt="Blooming Lotus"
-                  className="lotus-bloom-anim w-auto h-48 sm:h-64 md:h-[340px] object-contain"
+                  className="relative w-auto h-48 sm:h-64 md:h-[340px] object-contain opacity-0 transition-opacity duration-700 ease-out"
+                  onLoad={(e) => {
+                    setTimeout(() => {
+                      ;(e.target as HTMLElement).style.opacity = '1'
+                    }, 1800)
+                  }}
                 />
               </div>
             </div>
@@ -2262,17 +2304,17 @@ function ScrollProgressBar() {
 
 function FloatingWhatsApp() {
   return (
-    <aside aria-label="WhatsApp Contact" className="fixed bottom-6 right-6 z-50">
+    <aside aria-label="WhatsApp Contact" className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-40">
       <a
         href="https://wa.me/919788713822?text=Hello%20Abhyudaya%20Preschool%2C%20I%20would%20like%20to%20enquire%20about%20admissions"
         target="_blank"
         rel="noopener noreferrer"
         title="Chat on WhatsApp (97887 13822)"
         aria-label="Direct WhatsApp Contact - 97887 13822"
-        className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all duration-200"
+        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all duration-200"
         style={{ boxShadow: '0 6px 20px rgba(37, 211, 102, 0.45)' }}
       >
-        <WhatsAppIcon size={28} />
+        <WhatsAppIcon size={26} />
       </a>
     </aside>
   )

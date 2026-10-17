@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react'
-import { submitEnquiry, submitCampusVisit, isConfigured as dbConfigured } from './lib/db'
+import { submitEnquiry, submitCampusVisit } from './lib/db'
 import { ScrollReveal } from './components/ScrollReveal'
 import { CountUp } from './components/CountUp'
 import { GalleryLightbox, type GalleryItemData } from './components/GalleryLightbox'
@@ -17,7 +17,7 @@ import {
 } from './components/ui/tabs'
 
 // Cache-busting parameter for static assets so phones and browsers never get stuck with stale cached files
-const ASSET_V = '?v=4'
+const ASSET_V = '?v=5'
 
 // ── Decorative helpers ──────────────────────────────────────────────────────
 
@@ -463,7 +463,7 @@ function Navbar({
         {/* Logo */}
         <button
           onClick={() => setActive('Home')}
-          className="flex items-center group focus:outline-none -translate-x-1 sm:-translate-x-1.5 md:translate-x-0 transition-transform duration-200"
+          className="flex items-center group focus:outline-none -translate-x-2.5 sm:-translate-x-1.5 md:translate-x-0 transition-transform duration-200"
           aria-label="Abhyudaya Preschool Home"
         >
           <div
@@ -588,6 +588,181 @@ const TESTIMONIALS = [
   { name: 'Sunita', child: 'Mother of Rohan, 5', text: 'The play-based learning approach is outstanding. Rohan learned to read, paint, and make friends — all through fun!', avatar: '👩‍🦱' },
 ]
 
+// ── Cinematic Hero Lotus Mascot with Directional Assembly ───────────────────
+
+function CinematicLotusMascot({ assetVersion }: { assetVersion: string }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [triggered, setTriggered] = useState(false)
+
+  useEffect(() => {
+    // If prefers-reduced-motion is on, show immediately without animation
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setTriggered(true)
+      return
+    }
+
+    const node = containerRef.current
+    if (!node) return
+
+    // Trigger on scroll when entering viewport
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          // On mobile, fire as soon as scrolled into view
+          // On desktop, if page is at the very top (scrollY < 15), wait until user scrolls down
+          if (window.scrollY > 15 || window.innerWidth < 768) {
+            setTriggered(true)
+            observer.disconnect()
+          } else {
+            const onFirstScroll = () => {
+              if (window.scrollY > 10) {
+                setTriggered(true)
+                observer.disconnect()
+                window.removeEventListener('scroll', onFirstScroll)
+              }
+            }
+            window.addEventListener('scroll', onFirstScroll, { passive: true })
+          }
+        }
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -30px 0px' }
+    )
+
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative flex items-center justify-center min-h-[260px] sm:min-h-[320px] md:min-h-[520px] md:h-auto py-2 sm:py-4 md:py-0 overflow-visible"
+    >
+      {/* Soft radiant ambient glow behind lotus */}
+      <div
+        className={`absolute inset-0 -z-10 flex items-center justify-center pointer-events-none translate-x-0 md:translate-x-3 lg:translate-x-4 translate-y-6 md:translate-y-12 transition-opacity duration-1000 ${
+          triggered ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        <div
+          className={`${triggered ? 'lotus-glow-anim' : ''} w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-full`}
+          style={{
+            background:
+              'radial-gradient(circle, rgba(255, 235, 190, 0.6) 0%, rgba(255, 215, 235, 0.5) 35%, rgba(224, 208, 248, 0.4) 60%, transparent 75%)',
+            filter: 'blur(28px)',
+          }}
+        />
+      </div>
+
+      <div className="relative max-w-full max-h-full flex flex-col items-center justify-center translate-x-0 md:translate-x-3 lg:translate-x-4 translate-y-0 md:-translate-y-2 lg:-translate-y-3">
+        {/* 1. Abhyudaya Logo - Enters FIRST on page load with elegant animation */}
+        <img
+          src={`/logo_transparent.png${assetVersion}`}
+          alt="Abhyudaya Logo"
+          className="hero-logo-anim w-56 sm:w-72 md:w-[340px] lg:w-[360px] h-auto object-contain mb-1 sm:mb-2 -translate-y-2.5 sm:-translate-y-4 md:-translate-y-5 translate-x-0 z-10"
+          style={{
+            filter: 'drop-shadow(0 6px 16px rgba(180, 40, 40, 0.28))',
+          }}
+        />
+
+        {/* 2 & 3. Lotus Container - Triggered on Scroll */}
+        <div
+          className={`relative flex items-center justify-center transition-opacity duration-500 ${
+            triggered ? 'lotus-assembled-container opacity-100' : 'opacity-0'
+          }`}
+        >
+          {/* Floating subtle ambient particles around lotus */}
+          {triggered && (
+            <>
+              <span className="absolute -top-2 right-4 w-2.5 h-2.5 rounded-full bg-amber-300/80 blur-[0.5px] particle-float-1 pointer-events-none" />
+              <span className="absolute top-8 -left-3 w-3 h-3 rounded-full bg-pink-300/80 blur-[0.5px] particle-float-2 pointer-events-none" />
+              <span className="absolute -bottom-2 -left-1 w-2 h-2 rounded-full bg-purple-300/75 blur-[0.5px] particle-float-3 pointer-events-none" />
+              <span className="absolute -bottom-1 -right-2 w-2.5 h-2.5 rounded-full bg-sky-300/80 blur-[0.5px] particle-float-4 pointer-events-none" />
+              <span className="absolute top-1/2 -right-5 w-2 h-2 rounded-full bg-rose-300/70 blur-[0.5px] particle-float-2 pointer-events-none" />
+            </>
+          )}
+
+          {/* 8-Directional & Diagonal Assembling Petal Layers */}
+          {/* Bottom */}
+          <img
+            src={`/lotus_petal_bottom.png${assetVersion}`}
+            alt=""
+            aria-hidden="true"
+            className={`${triggered ? 'lotus-conv-bottom' : ''} absolute inset-0 w-full h-full object-contain pointer-events-none`}
+          />
+          {/* Bottom-Left */}
+          <img
+            src={`/lotus_petal_bottom_left.png${assetVersion}`}
+            alt=""
+            aria-hidden="true"
+            className={`${triggered ? 'lotus-conv-bottom-left' : ''} absolute inset-0 w-full h-full object-contain pointer-events-none`}
+          />
+          {/* Bottom-Right */}
+          <img
+            src={`/lotus_petal_bottom_right.png${assetVersion}`}
+            alt=""
+            aria-hidden="true"
+            className={`${triggered ? 'lotus-conv-bottom-right' : ''} absolute inset-0 w-full h-full object-contain pointer-events-none`}
+          />
+          {/* Left Wing */}
+          <img
+            src={`/lotus_petal_left.png${assetVersion}`}
+            alt=""
+            aria-hidden="true"
+            className={`${triggered ? 'lotus-conv-left' : ''} absolute inset-0 w-full h-full object-contain pointer-events-none`}
+          />
+          {/* Right Wing */}
+          <img
+            src={`/lotus_petal_right.png${assetVersion}`}
+            alt=""
+            aria-hidden="true"
+            className={`${triggered ? 'lotus-conv-right' : ''} absolute inset-0 w-full h-full object-contain pointer-events-none`}
+          />
+          {/* Top-Left */}
+          <img
+            src={`/lotus_petal_top_left.png${assetVersion}`}
+            alt=""
+            aria-hidden="true"
+            className={`${triggered ? 'lotus-conv-top-left' : ''} absolute inset-0 w-full h-full object-contain pointer-events-none`}
+          />
+          {/* Top-Right */}
+          <img
+            src={`/lotus_petal_top_right.png${assetVersion}`}
+            alt=""
+            aria-hidden="true"
+            className={`${triggered ? 'lotus-conv-top-right' : ''} absolute inset-0 w-full h-full object-contain pointer-events-none`}
+          />
+          {/* Top Crown Petal */}
+          <img
+            src={`/lotus_petal_top.png${assetVersion}`}
+            alt=""
+            aria-hidden="true"
+            className={`${triggered ? 'lotus-conv-top' : ''} absolute inset-0 w-full h-full object-contain pointer-events-none`}
+          />
+          {/* Center Golden Core */}
+          <img
+            src={`/lotus_petal_core.png${assetVersion}`}
+            alt=""
+            aria-hidden="true"
+            className={`${triggered ? 'lotus-conv-core' : ''} absolute inset-0 w-full h-full object-contain pointer-events-none`}
+          />
+
+          {/* Master Full Lotus - Seamless Cross-fade as bloom reaches peak */}
+          <img
+            src={`/lotus.png${assetVersion}`}
+            alt="Blooming Lotus"
+            className={`relative w-auto h-48 sm:h-64 md:h-[300px] lg:h-[320px] object-contain transition-opacity duration-700 ease-out ${
+              triggered ? 'opacity-100' : 'opacity-0'
+            }`}
+            style={{
+              transitionDelay: triggered ? '1100ms' : '0ms',
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; onEnrollNow?: () => void }) {
   return (
     <div className="relative min-h-screen overflow-hidden" style={{ background: 'linear-gradient(160deg, #f5f0fd 0%, #e8f5f0 40%, #fdf5e8 100%)' }}>
@@ -607,7 +782,7 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
       <div className="absolute top-0 left-0 right-0 h-2 rainbow-bar" />
 
       {/* Hero */}
-      <div className="relative max-w-6xl mx-auto px-4 pt-28 pb-16">
+      <div className="relative max-w-6xl mx-auto px-4 pt-24 sm:pt-28 pb-8 sm:pb-12 md:pb-16">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div>
             <div className="hero-anim-badge inline-flex items-center gap-2 bg-white/80 backdrop-blur-md px-4 py-2 rounded-full text-xs sm:text-sm font-black text-[#7a5a90] mb-6 shadow-sm border border-[#e0d0f8]">
@@ -666,89 +841,12 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
             </div>
           </div>
 
-          {/* Lotus Image on Right Side of Home Page with logo_transparent.png on top */}
-          <div className="hero-anim-mascot relative flex items-center justify-center min-h-[290px] sm:min-h-[340px] md:h-[480px] py-4 sm:py-6 md:py-0 md:pt-10">
-            {/* Soft radiant ambient glow behind lotus */}
-            <div className="absolute inset-0 -z-10 flex items-center justify-center pointer-events-none translate-x-0 md:translate-x-4 lg:translate-x-6 translate-y-0 md:translate-y-8 lg:translate-y-10">
-              <div
-                className="lotus-glow-anim w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-full"
-                style={{
-                  background: 'radial-gradient(circle, rgba(255, 235, 190, 0.6) 0%, rgba(255, 215, 235, 0.5) 35%, rgba(224, 208, 248, 0.4) 60%, transparent 75%)',
-                  filter: 'blur(28px)',
-                }}
-              />
-            </div>
-
-            <div className="relative max-w-full max-h-full flex flex-col items-center justify-center translate-x-0 md:translate-x-4 lg:translate-x-6 translate-y-0 md:translate-y-6 lg:translate-y-8">
-              {/* Logo on top of lotus - optically centered on mobile above lotus, unchanged on desktop */}
-              <img
-                src={`/logo_transparent.png${ASSET_V}`}
-                alt="Abhyudaya Logo"
-                className="w-56 sm:w-72 md:w-[380px] h-auto object-contain mb-1 sm:mb-2 -translate-y-3 sm:-translate-y-5 md:-translate-y-6 -translate-x-2.5 sm:-translate-x-2 md:translate-x-0 z-10"
-                style={{
-                  filter: 'drop-shadow(0 6px 16px rgba(180, 40, 40, 0.28))',
-                }}
-              />
-
-              {/* Blooming Sacred Lotus flower with botanical petal layers */}
-              <div className="lotus-flower-container relative flex items-center justify-center">
-                {/* Floating subtle ambient particles around lotus */}
-                <span className="absolute -top-2 right-4 w-2.5 h-2.5 rounded-full bg-amber-300/80 blur-[0.5px] particle-float-1 pointer-events-none" />
-                <span className="absolute top-8 -left-3 w-3 h-3 rounded-full bg-pink-300/80 blur-[0.5px] particle-float-2 pointer-events-none" />
-                <span className="absolute -bottom-2 -left-1 w-2 h-2 rounded-full bg-purple-300/75 blur-[0.5px] particle-float-3 pointer-events-none" />
-                <span className="absolute -bottom-1 -right-2 w-2.5 h-2.5 rounded-full bg-sky-300/80 blur-[0.5px] particle-float-4 pointer-events-none" />
-                <span className="absolute top-1/2 -right-5 w-2 h-2 rounded-full bg-rose-300/70 blur-[0.5px] particle-float-2 pointer-events-none" />
-
-                {/* Botanical Petal Layer 1: Grounding base violet petals */}
-                <img
-                  src={`/lotus_base.png${ASSET_V}`}
-                  alt=""
-                  aria-hidden="true"
-                  className="lotus-layer-base absolute inset-0 w-full h-full object-contain pointer-events-none"
-                />
-
-                {/* Botanical Petal Layer 2: Left wing unfolding petals */}
-                <img
-                  src={`/lotus_left_wing.png${ASSET_V}`}
-                  alt=""
-                  aria-hidden="true"
-                  className="lotus-layer-left absolute inset-0 w-full h-full object-contain pointer-events-none"
-                />
-
-                {/* Botanical Petal Layer 3: Right wing unfolding petals */}
-                <img
-                  src={`/lotus_right_wing.png${ASSET_V}`}
-                  alt=""
-                  aria-hidden="true"
-                  className="lotus-layer-right absolute inset-0 w-full h-full object-contain pointer-events-none"
-                />
-
-                {/* Botanical Petal Layer 4: Inner glowing golden core & stamen */}
-                <img
-                  src={`/lotus_core.png${ASSET_V}`}
-                  alt=""
-                  aria-hidden="true"
-                  className="lotus-layer-core absolute inset-0 w-full h-full object-contain pointer-events-none"
-                />
-
-                {/* Master composite lotus blossom image */}
-                <img
-                  src={`/lotus.png${ASSET_V}`}
-                  alt="Blooming Lotus"
-                  className="relative w-auto h-48 sm:h-64 md:h-[340px] object-contain opacity-0 transition-opacity duration-700 ease-out"
-                  onLoad={(e) => {
-                    setTimeout(() => {
-                      ;(e.target as HTMLElement).style.opacity = '1'
-                    }, 1800)
-                  }}
-                />
-              </div>
-            </div>
-          </div>
+          {/* Cinematic Lotus Mascot with Four-Direction Assemble & Bloom */}
+          <CinematicLotusMascot assetVersion={ASSET_V} />
         </div>
 
         {/* Why choose us strip */}
-        <ScrollReveal delay={100} className="mt-16">
+        <ScrollReveal delay={100} className="mt-8 sm:mt-12 md:mt-16">
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-3xl font-black text-[#5a3a8a]" style={{ fontFamily: 'Nunito, sans-serif' }}>
               Why Families Love Abhyudaya 💗
@@ -876,15 +974,15 @@ function AboutPage() {
           {/* Vision Card */}
           <div className="card-hover rounded-3xl p-7 sm:p-9 shadow-sm border border-white bg-gradient-to-br from-[#f9f5ff] via-[#f5edfd] to-[#ede3fa] flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-3 mb-5">
-                <span className="text-4xl">🌟</span>
+              <div className="flex items-start gap-4 mb-5">
+                <span className="text-5xl shrink-0 mt-0.5">🌟</span>
                 <div>
-                  <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-[#5a3a8a]/10 text-[#5a3a8a] inline-block">
+                  <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#3d2a50] tracking-tight leading-tight" style={{ fontFamily: 'Nunito, sans-serif' }}>
                     Our Vision
-                  </span>
-                  <h3 className="text-2xl sm:text-3xl font-black text-[#3d2a50] mt-1" style={{ fontFamily: 'Nunito, sans-serif' }}>
-                    Igniting a Lifelong Love for Learning
                   </h3>
+                  <p className="text-base sm:text-lg font-bold text-[#6a4290] mt-1.5">
+                    Igniting a Lifelong Love for Learning
+                  </p>
                 </div>
               </div>
               <p className="text-[#5a4a6a] text-sm sm:text-base leading-relaxed mb-4">
@@ -906,15 +1004,15 @@ function AboutPage() {
           {/* Mission Card */}
           <div className="card-hover rounded-3xl p-7 sm:p-9 shadow-sm border border-white bg-gradient-to-br from-[#f0fbf6] via-[#e5f8ee] to-[#d6f3e3] flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-3 mb-5">
-                <span className="text-4xl">💛</span>
+              <div className="flex items-start gap-4 mb-5">
+                <span className="text-5xl shrink-0 mt-0.5">💛</span>
                 <div>
-                  <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-[#1a6a45]/10 text-[#1a6a45] inline-block">
+                  <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#1e3d2f] tracking-tight leading-tight" style={{ fontFamily: 'Nunito, sans-serif' }}>
                     Our Mission
-                  </span>
-                  <h3 className="text-2xl sm:text-3xl font-black text-[#1e3d2f] mt-1" style={{ fontFamily: 'Nunito, sans-serif' }}>
-                    A Safe, Child-Centered Foundation
                   </h3>
+                  <p className="text-base sm:text-lg font-bold text-[#1f734b] mt-1.5">
+                    A Safe, Child-Centered Foundation
+                  </p>
                 </div>
               </div>
               <p className="text-[#3a5a4a] text-sm sm:text-base leading-relaxed mb-4">
@@ -1863,13 +1961,6 @@ I have submitted a campus visit request:
                     🚀
                   </div>
                 </div>
-
-                {!dbConfigured && (
-                  <div className="mb-4 p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-amber-700 text-xs font-medium flex items-center gap-2">
-                    <span>⚠️</span>
-                    <span>Database not yet connected — use WhatsApp or call us directly for fastest response. <a href="tel:+919788713822" className="font-black underline">97887 13822</a></span>
-                  </div>
-                )}
 
                 {submitted && (
                   <div className="mb-6 p-4 bg-[#b8f0d8] rounded-2xl text-[#1a6a45] font-bold text-sm flex items-center gap-3 border border-[#7ed8a0]" role="alert" aria-live="polite">

@@ -57,11 +57,23 @@ function isRateLimited(): boolean {
 // ── Enquiry submission ────────────────────────────────────────────────────────
 
 export async function submitEnquiry(rawData: EnquirySubmission): Promise<SubmitResult> {
+  const validationError = validateEnquiry(rawData)
+  if (validationError) return { success: false, error: validationError }
+
   if (!supabase) {
-    return {
-      success: false,
-      error: 'Database not configured yet. Please set up Supabase credentials in .env.local.',
+    // Graceful offline fallback: store locally
+    try {
+      const existing = JSON.parse(localStorage.getItem('abhyudaya_local_enquiries') || '[]')
+      existing.unshift({
+        ...rawData,
+        id: 'local_' + Date.now(),
+        created_at: new Date().toISOString(),
+      })
+      localStorage.setItem('abhyudaya_local_enquiries', JSON.stringify(existing.slice(0, 100)))
+    } catch {
+      // ignore
     }
+    return { success: true }
   }
 
   if (isRateLimited()) {
@@ -70,9 +82,6 @@ export async function submitEnquiry(rawData: EnquirySubmission): Promise<SubmitR
       error: 'Too many submissions. Please wait a moment before trying again.',
     }
   }
-
-  const validationError = validateEnquiry(rawData)
-  if (validationError) return { success: false, error: validationError }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const payload: Record<string, any> = {

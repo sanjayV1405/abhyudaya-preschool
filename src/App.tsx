@@ -663,11 +663,11 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
           </div>
 
           {/* Lotus Image on Right Side of Home Page with logo_transparent.png on top */}
-          <div className="hero-anim-mascot relative flex items-center justify-center h-80 md:h-[480px] pt-6 sm:pt-10">
+          <div className="hero-anim-mascot relative flex items-center justify-center min-h-[290px] sm:min-h-[340px] md:h-[480px] py-4 sm:py-6 md:py-0 md:pt-10">
             {/* Soft radiant ambient glow behind lotus */}
-            <div className="absolute inset-0 -z-10 flex items-center justify-center pointer-events-none translate-x-12 sm:translate-x-20 translate-y-12 sm:translate-y-16">
+            <div className="absolute inset-0 -z-10 flex items-center justify-center pointer-events-none translate-x-0 md:translate-x-12 lg:translate-x-20 translate-y-0 md:translate-y-12 lg:translate-y-16">
               <div
-                className="w-72 h-72 sm:w-96 sm:h-96 rounded-full"
+                className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-full"
                 style={{
                   background: 'radial-gradient(circle, rgba(255, 230, 240, 0.7) 0%, rgba(224, 208, 248, 0.5) 45%, transparent 70%)',
                   filter: 'blur(25px)',
@@ -675,12 +675,12 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
               />
             </div>
 
-            <div className="relative max-w-full max-h-full flex flex-col items-center justify-center translate-x-12 sm:translate-x-20 translate-y-8 sm:translate-y-12">
+            <div className="relative max-w-full max-h-full flex flex-col items-center justify-center translate-x-0 md:translate-x-12 lg:translate-x-20 translate-y-0 md:translate-y-8 lg:translate-y-12">
               {/* Logo on top of lotus - bigger & shifted up */}
               <img
                 src={`/logo_transparent.png${ASSET_V}`}
                 alt="Abhyudaya Logo"
-                className="w-60 sm:w-76 md:w-[380px] h-auto object-contain mb-1 sm:mb-2 -translate-y-4 sm:-translate-y-6 z-10"
+                className="w-56 sm:w-72 md:w-[380px] h-auto object-contain mb-1 sm:mb-2 -translate-y-3 sm:-translate-y-5 md:-translate-y-6 z-10"
                 style={{
                   filter: 'drop-shadow(0 6px 16px rgba(180, 40, 40, 0.28))',
                 }}
@@ -690,7 +690,7 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
               <img
                 src={`/lotus.png${ASSET_V}`}
                 alt="Lotus Illustration"
-                className="w-auto h-56 sm:h-72 md:h-[340px] object-contain"
+                className="w-auto h-48 sm:h-64 md:h-[340px] object-contain"
                 style={{
                   filter: 'drop-shadow(0 12px 24px rgba(120, 60, 140, 0.15))',
                 }}
@@ -799,21 +799,13 @@ function AboutPage() {
     { icon: '📚', title: 'Holistic Growth', color: '#ffd8e4', desc: 'Social, emotional, cognitive, and physical development are equally nurtured in our curriculum.' },
   ]
   return (
-    <div
-      className="min-h-screen relative overflow-hidden"
-      style={{
-        backgroundImage: `linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(253, 250, 246, 0.65) 40%, rgba(240, 248, 244, 0.8) 100%), url('/rainbow.jpg${ASSET_V}')`,
-        backgroundSize: 'contain',
-        backgroundPosition: 'center top',
-        backgroundRepeat: 'no-repeat',
-      }}
-    >
+    <div className="min-h-screen relative overflow-hidden about-page-bg">
       <div className="rainbow-bar h-1.5" />
-      <div className="max-w-6xl mx-auto px-4 py-20 relative z-10">
-        <ScrollReveal className="text-center mb-14">
-          <span className="text-5xl">🌻</span>
-          <h2 className="text-4xl sm:text-5xl font-black text-[#5a3a8a] mt-3 mb-4" style={{ fontFamily: 'Nunito, sans-serif' }}>About Abhyudaya Preschool</h2>
-          <p className="text-base sm:text-lg text-[#6a5a7a] max-w-xl mx-auto font-medium">Nurturing tiny hearts with love, structure, and wonder in SS Nagar, Perumanallur.</p>
+      <div className="max-w-6xl mx-auto px-4 pt-24 pb-14 sm:py-20 relative z-10">
+        <ScrollReveal className="text-center mb-10 sm:mb-14">
+          <span className="text-5xl inline-block mb-1 sm:mb-2 animate-bounce-soft">🌻</span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#5a3a8a] mb-3 sm:mb-4" style={{ fontFamily: 'Nunito, sans-serif' }}>About Abhyudaya Preschool</h2>
+          <p className="text-sm sm:text-base md:text-lg text-[#6a5a7a] max-w-xl mx-auto font-medium px-2 sm:px-0">Nurturing tiny hearts with love, structure, and wonder in SS Nagar, Perumanallur.</p>
         </ScrollReveal>
 
         {/* Vision & Mission */}

@@ -2,19 +2,19 @@ import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../types/database'
 
 // ── Environment validation ──────────────────────────────────────────────────
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const supabaseKey = (
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-) as string | undefined
+const rawUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim()
+const rawKey = (
+  (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
+  (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)
+)?.trim()
 
 const isConfigured =
-  typeof supabaseUrl === 'string' &&
-  supabaseUrl.startsWith('https://') &&
-  !supabaseUrl.includes('your-project-ref') &&
-  typeof supabaseKey === 'string' &&
-  supabaseKey.length > 20 &&
-  !supabaseKey.includes('your-supabase')
+  typeof rawUrl === 'string' &&
+  rawUrl.startsWith('https://') &&
+  !rawUrl.includes('your-project-ref') &&
+  typeof rawKey === 'string' &&
+  rawKey.length > 20 &&
+  !rawKey.includes('your-supabase')
 
 // ── Client singleton ─────────────────────────────────────────────────────────
 //
@@ -25,7 +25,7 @@ const isConfigured =
 let supabase: ReturnType<typeof createClient<Database>> | null = null
 
 if (isConfigured) {
-  supabase = createClient<Database>(supabaseUrl!, supabaseKey!, {
+  supabase = createClient<Database>(rawUrl!, rawKey!, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,

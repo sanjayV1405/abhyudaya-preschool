@@ -227,6 +227,15 @@ CREATE POLICY "Admins full access to testimonials"
     USING (auth.role() = 'authenticated')
     WITH CHECK (auth.role() = 'authenticated');
 
+-- Explicit PostgREST permissions for public and authenticated roles (guarded by RLS policies)
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT ALL ON TABLE public.programs TO anon, authenticated;
+GRANT ALL ON TABLE public.enquiries TO anon, authenticated;
+GRANT ALL ON TABLE public.events TO anon, authenticated;
+GRANT ALL ON TABLE public.announcements TO anon, authenticated;
+GRANT ALL ON TABLE public.gallery TO anon, authenticated;
+GRANT ALL ON TABLE public.testimonials TO anon, authenticated;
+
 -- ==============================================================================
 -- STORAGE BUCKET CONFIGURATION (for Supabase Storage)
 -- ==============================================================================

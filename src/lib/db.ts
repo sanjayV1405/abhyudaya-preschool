@@ -13,6 +13,8 @@ import type {
 // ── Validation helpers ───────────────────────────────────────────────────────
 
 const PHONE_REGEX = /^[+]?[\d\s\-().]{7,15}$/
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
 
 export interface SubmitResult {
   success: boolean
@@ -24,6 +26,16 @@ function sanitizeText(value: unknown): string {
   return value.trim().replace(/[<>]/g, '')
 }
 
+function isValidUuid(value: unknown): value is string {
+  return typeof value === 'string' && UUID_REGEX.test(value.trim())
+}
+
+function sanitizeDate(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return DATE_REGEX.test(trimmed) ? trimmed : null
+}
+
 function validateEnquiry(data: EnquirySubmission): string | null {
   const name = sanitizeText(data.parent_name)
   if (name.length < 2) return 'Parent name must be at least 2 characters.'
@@ -33,7 +45,7 @@ function validateEnquiry(data: EnquirySubmission): string | null {
 
   if (data.email) {
     const email = sanitizeText(data.email)
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Please enter a valid email address.'
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Please enter a valid email address.'
   }
 
   return null // valid
@@ -61,19 +73,11 @@ export async function submitEnquiry(rawData: EnquirySubmission): Promise<SubmitR
   if (validationError) return { success: false, error: validationError }
 
   if (!supabase) {
-    // Graceful offline fallback: store locally
-    try {
-      const existing = JSON.parse(localStorage.getItem('abhyudaya_local_enquiries') || '[]')
-      existing.unshift({
-        ...rawData,
-        id: 'local_' + Date.now(),
-        created_at: new Date().toISOString(),
-      })
-      localStorage.setItem('abhyudaya_local_enquiries', JSON.stringify(existing.slice(0, 100)))
-    } catch {
-      // ignore
+    console.error('[Enquiry] Database client is not configured or Supabase keys are missing.')
+    return {
+      success: false,
+      error: 'We could not save your enquiry right now. Please call or WhatsApp us directly at 97887 13822.',
     }
-    return { success: true }
   }
 
   if (isRateLimited()) {
@@ -83,6 +87,7 @@ export async function submitEnquiry(rawData: EnquirySubmission): Promise<SubmitR
     }
   }
 
+  // Construct validated and sanitized database payload
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const payload: Record<string, any> = {
     parent_name: sanitizeText(rawData.parent_name),
@@ -90,26 +95,48 @@ export async function submitEnquiry(rawData: EnquirySubmission): Promise<SubmitR
     enquiry_type: rawData.enquiry_type ?? 'admission',
   }
 
-  if (rawData.email) payload.email = sanitizeText(rawData.email)
-  if (rawData.child_name) payload.child_name = sanitizeText(rawData.child_name)
-  if (rawData.child_age) payload.child_age = sanitizeText(rawData.child_age)
-  if (rawData.program_id) payload.program_id = rawData.program_id
-  if (rawData.message) payload.message = sanitizeText(rawData.message).slice(0, 1000)
-  if (rawData.preferred_date) payload.preferred_date = rawData.preferred_date
-  if (rawData.preferred_slot) payload.preferred_slot = rawData.preferred_slot
+  const email = sanitizeText(rawData.email)
+  if (email) payload.email = email
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('enquiries') as any).insert([payload])
+  const childName = sanitizeText(rawData.child_name)
+  if (childName) payload.child_name = childName
 
-  if (error) {
-    console.error('[Enquiry] Insert error:', (error as { message: string }).message)
+  const childAge = sanitizeText(rawData.child_age)
+  if (childAge) payload.child_age = childAge
+
+  if (rawData.program_id && isValidUuid(rawData.program_id)) {
+    payload.program_id = rawData.program_id
+  }
+
+  const message = sanitizeText(rawData.message)
+  if (message) payload.message = message.slice(0, 1000)
+
+  const preferredDate = sanitizeDate(rawData.preferred_date)
+  if (preferredDate) payload.preferred_date = preferredDate
+
+  const preferredSlot = sanitizeText(rawData.preferred_slot)
+  if (preferredSlot) payload.preferred_slot = preferredSlot
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('enquiries') as any).insert([payload])
+
+    if (error) {
+      console.error('[Enquiry] Insert error:', (error as { message: string }).message, error)
+      return {
+        success: false,
+        error: 'We could not save your enquiry right now. Please call or WhatsApp us directly at 97887 13822.',
+      }
+    }
+
+    return { success: true }
+  } catch (err) {
+    console.error('[Enquiry] Unexpected error:', err)
     return {
       success: false,
       error: 'We could not save your enquiry right now. Please call or WhatsApp us directly at 97887 13822.',
     }
   }
-
-  return { success: true }
 }
 
 // ── Campus visit submission ───────────────────────────────────────────────────

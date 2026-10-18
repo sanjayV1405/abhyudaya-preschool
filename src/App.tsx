@@ -1703,6 +1703,7 @@ function ContactPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (submitting) return
     setSubmitError('')
     setSubmitting(true)
     const result = await submitEnquiry({
@@ -1738,6 +1739,7 @@ I would like to enquire about admissions:
 
   async function handleVisitSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (visitSubmitting) return
     setVisitError('')
     setVisitSubmitting(true)
     const result = await submitCampusVisit({
@@ -2422,18 +2424,38 @@ const PAGES: Record<string, (props: { setActive: (p: string) => void; onEnrollNo
   Gallery: () => <GalleryPage />,
   Programs: ({ setActive, onEnrollNow }) => <ProgramsPage setActive={setActive} onEnrollNow={onEnrollNow} />,
   Contact: () => <ContactPage />,
-  Admin: () => (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><span className="text-3xl animate-pulse">⏳</span></div>}>
-      <AdminPage />
+  Admin: ({ setActive }) => (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#f8f6fc]"><span className="text-3xl animate-pulse">⏳</span></div>}>
+      <AdminPage onBackToSite={() => setActive('Home')} />
     </Suspense>
   ),
 }
 
+function getInitialPage(): string {
+  if (typeof window !== 'undefined') {
+    const path = window.location.pathname.toLowerCase()
+    if (path === '/admin' || path.startsWith('/admin/')) return 'Admin'
+    if (path === '/about') return 'About'
+    if (path === '/programs') return 'Programs'
+    if (path === '/gallery') return 'Gallery'
+    if (path === '/contact') return 'Contact'
+  }
+  return 'Home'
+}
+
 export default function App() {
-  const [active, setActive] = useState('Home')
+  const [active, setActive] = useState(getInitialPage)
   const topRef = useRef<HTMLDivElement>(null)
   const navbarLogoRef = useRef<HTMLDivElement>(null)
   const [introPhase, setIntroPhase] = useState<'enter' | 'hold' | 'travel' | 'settle' | 'complete'>('enter')
+
+  useEffect(() => {
+    function handlePopState() {
+      setActive(getInitialPage())
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
 
   function scrollToEnquiry() {
     const el = document.getElementById('enquiry-form')
@@ -2450,7 +2472,7 @@ export default function App() {
     if (active === 'Contact') {
       scrollToEnquiry()
     } else {
-      setActive('Contact')
+      navigate('Contact')
       // Wait for ContactPage to mount in DOM, then scroll directly to the enquiry form
       requestAnimationFrame(() => {
         setTimeout(scrollToEnquiry, 80)
@@ -2460,10 +2482,30 @@ export default function App() {
 
   function navigate(page: string) {
     setActive(page)
+    if (typeof window !== 'undefined') {
+      if (page === 'Admin') {
+        window.history.pushState(null, '', '/admin')
+      } else if (page === 'Home') {
+        window.history.pushState(null, '', '/')
+      } else {
+        window.history.pushState(null, '', '/' + page.toLowerCase())
+      }
+    }
     topRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  const Page = PAGES[active]
+  // If on Admin page, render only the standalone Admin portal
+  if (active === 'Admin') {
+    return (
+      <div style={{ fontFamily: 'Poppins, sans-serif' }}>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#f8f6fc]"><span className="text-3xl animate-pulse">⏳</span></div>}>
+          <AdminPage onBackToSite={() => navigate('Home')} />
+        </Suspense>
+      </div>
+    )
+  }
+
+  const Page = PAGES[active] || PAGES['Home']
 
   return (
     <div ref={topRef} style={{ fontFamily: 'Poppins, sans-serif' }}>

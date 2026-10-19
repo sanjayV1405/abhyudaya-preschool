@@ -16,14 +16,14 @@ import type {
 // Database access is securely protected by Supabase Row Level Security (RLS) policies
 // using the PostgreSQL `public.is_admin()` function.
 //
-export const AUTHORIZED_ADMIN_EMAILS = [
+const AUTHORIZED_ADMIN_EMAILS = [
   'abhyudayapreschool@gmail.com',
   'jothisanjay659@gmail.com',
   'sreelakshmij67@gmail.com',
   'vkvsvishw91@gmail.com',
 ] as const
 
-export function isAuthorizedAdmin(user: { email?: string | null; app_metadata?: { role?: string } } | null): boolean {
+function isAuthorizedAdmin(user: { email?: string | null; app_metadata?: { role?: string } } | null): boolean {
   if (!user) return false
   if (user.app_metadata?.role === 'admin') return true
   const email = (user.email ?? '').trim().toLowerCase()
@@ -59,24 +59,43 @@ function useAdminAuth() {
       return
     }
 
-    supabase.auth.getSession().then(({ data }) => {
-      const currentUser = data.session?.user ?? null
-      if (currentUser && !isAuthorizedAdmin(currentUser)) {
-        supabase?.auth.signOut()
-        setUser(null)
-        setAuthError(
-          `Access denied: The account ${currentUser.email} is not an authorized administrator.`,
-        )
-      } else {
-        setUser(currentUser)
-      }
-      setLoading(false)
-    })
+    let isMounted = true
+
+    // Safety timeout: Ensure loading never hangs indefinitely
+    const timeoutId = setTimeout(() => {
+      if (isMounted) setLoading(false)
+    }, 2500)
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!isMounted) return
+        const currentUser = data?.session?.user ?? null
+        if (currentUser && !isAuthorizedAdmin(currentUser)) {
+          supabase?.auth.signOut().catch(() => {})
+          setUser(null)
+          setAuthError(
+            `Access denied: The account ${currentUser.email} is not an authorized administrator.`,
+          )
+        } else {
+          setUser(currentUser)
+        }
+      })
+      .catch(err => {
+        console.warn('[useAdminAuth] Session check failed:', err)
+      })
+      .finally(() => {
+        if (isMounted) {
+          clearTimeout(timeoutId)
+          setLoading(false)
+        }
+      })
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_ev, session) => {
+      if (!isMounted) return
       const currentUser = session?.user ?? null
       if (currentUser && !isAuthorizedAdmin(currentUser)) {
-        await supabase?.auth.signOut()
+        await supabase?.auth.signOut().catch(() => {})
         setUser(null)
         setAuthError(
           `Access denied: The account ${currentUser.email} is not an authorized administrator.`,
@@ -87,7 +106,11 @@ function useAdminAuth() {
       }
     })
 
-    return () => listener.subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      clearTimeout(timeoutId)
+      listener?.subscription?.unsubscribe()
+    }
   }, [])
 
   return { user, loading, authError, setAuthError }
@@ -347,6 +370,9 @@ function AdminDashboard({ userEmail, onBackToSite }: AdminDashboardProps) {
   async function handleSignOut() {
     if (!supabase) return
     await supabase.auth.signOut()
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', '/admin/login')
+    }
   }
 
   // ── Enquiry Actions ────────────────────────────────────────────────────────
@@ -502,100 +528,168 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
   // ── Events Actions ──────────────────────────────────────────────────────────
 
   async function toggleEventPublished(evt: PreschoolEvent) {
-    if (!supabase) return
+    if (!supabase) {
+      showError('Database is not connected. Please verify your Supabase configuration.')
+      return
+    }
     const newStatus = !evt.published
     const { error } = await supabase.from('events').update({ published: newStatus }).eq('id', evt.id)
-    if (error) showError(error.message)
-    else {
+    if (error) {
+      showError('Failed to update event: ' + error.message)
+    } else {
       setEvents(prev => prev.map(e => (e.id === evt.id ? { ...e, published: newStatus } : e)))
       showNotification(`Event "${evt.title}" is now ${newStatus ? 'published' : 'draft'}.`)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+      }
     }
   }
 
   async function saveEvent(data: Partial<PreschoolEvent>) {
-    if (!supabase) return
-    if (!data.title || !data.event_date) {
-      alert('Event title and date are required.')
+    if (!supabase) {
+      showError('Database is not connected. Please verify your Supabase configuration.')
+      return
+    }
+    const title = data.title?.trim()
+    const eventDate = data.event_date?.trim()
+    if (!title || !eventDate) {
+      showError('Event title and date are required.')
       return
     }
 
+    const payload = {
+      title,
+      event_date: eventDate,
+      description: data.description?.trim() || null,
+      image_url: data.image_url?.trim() || null,
+      published: Boolean(data.published),
+    }
+
     if (data.id) {
-      const { error } = await supabase.from('events').update(data).eq('id', data.id)
-      if (error) showError(error.message)
-      else {
-        showNotification('Event updated.')
+      const { error } = await supabase.from('events').update(payload).eq('id', data.id)
+      if (error) {
+        showError('Failed to update event: ' + error.message)
+      } else {
+        showNotification('Event updated successfully.')
         setEventModal({ open: false })
-        fetchAllData()
+        await fetchAllData()
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+        }
       }
     } else {
-      const { error } = await supabase.from('events').insert([data])
-      if (error) showError(error.message)
-      else {
-        showNotification('Event created.')
+      const { error } = await supabase.from('events').insert([payload])
+      if (error) {
+        showError('Failed to create event: ' + error.message)
+      } else {
+        showNotification('Event created successfully.')
         setEventModal({ open: false })
-        fetchAllData()
+        await fetchAllData()
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+        }
       }
     }
   }
 
   async function deleteEvent(id: string) {
-    if (!confirm('Delete this event?')) return
-    if (!supabase) return
+    if (!confirm('Are you sure you want to delete this event? This action cannot be undone.')) return
+    if (!supabase) {
+      showError('Database is not connected.')
+      return
+    }
     const { error } = await supabase.from('events').delete().eq('id', id)
-    if (error) showError(error.message)
-    else {
+    if (error) {
+      showError('Failed to delete event: ' + error.message)
+    } else {
       setEvents(prev => prev.filter(e => e.id !== id))
-      showNotification('Event deleted.')
+      showNotification('Event deleted successfully.')
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+      }
     }
   }
 
   // ── Announcements Actions ───────────────────────────────────────────────────
 
   async function toggleAnnouncementPublished(ann: Announcement) {
-    if (!supabase) return
+    if (!supabase) {
+      showError('Database is not connected. Please verify your Supabase configuration.')
+      return
+    }
     const newStatus = !ann.published
     const { error } = await supabase.from('announcements').update({ published: newStatus }).eq('id', ann.id)
-    if (error) showError(error.message)
-    else {
+    if (error) {
+      showError('Failed to update announcement: ' + error.message)
+    } else {
       setAnnouncements(prev => prev.map(a => (a.id === ann.id ? { ...a, published: newStatus } : a)))
       showNotification(`Announcement "${ann.title}" is now ${newStatus ? 'published' : 'draft'}.`)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+      }
     }
   }
 
   async function saveAnnouncement(data: Partial<Announcement>) {
-    if (!supabase) return
-    if (!data.title || !data.content) {
-      alert('Announcement title and content are required.')
+    if (!supabase) {
+      showError('Database is not connected. Please verify your Supabase configuration.')
+      return
+    }
+    const title = data.title?.trim()
+    const content = data.content?.trim()
+    if (!title || !content) {
+      showError('Announcement title and content are required.')
       return
     }
 
+    const payload = {
+      title,
+      content,
+      published: Boolean(data.published),
+    }
+
     if (data.id) {
-      const { error } = await supabase.from('announcements').update(data).eq('id', data.id)
-      if (error) showError(error.message)
-      else {
-        showNotification('Announcement updated.')
+      const { error } = await supabase.from('announcements').update(payload).eq('id', data.id)
+      if (error) {
+        showError('Failed to update announcement: ' + error.message)
+      } else {
+        showNotification('Announcement updated successfully.')
         setAnnouncementModal({ open: false })
-        fetchAllData()
+        await fetchAllData()
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+        }
       }
     } else {
-      const { error } = await supabase.from('announcements').insert([data])
-      if (error) showError(error.message)
-      else {
-        showNotification('Announcement posted.')
+      const { error } = await supabase.from('announcements').insert([payload])
+      if (error) {
+        showError('Failed to post announcement: ' + error.message)
+      } else {
+        showNotification('Announcement posted successfully.')
         setAnnouncementModal({ open: false })
-        fetchAllData()
+        await fetchAllData()
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+        }
       }
     }
   }
 
   async function deleteAnnouncement(id: string) {
-    if (!confirm('Delete this announcement?')) return
-    if (!supabase) return
+    if (!confirm('Are you sure you want to delete this announcement? This action cannot be undone.')) return
+    if (!supabase) {
+      showError('Database is not connected.')
+      return
+    }
     const { error } = await supabase.from('announcements').delete().eq('id', id)
-    if (error) showError(error.message)
-    else {
+    if (error) {
+      showError('Failed to delete announcement: ' + error.message)
+    } else {
       setAnnouncements(prev => prev.filter(a => a.id !== id))
-      showNotification('Announcement deleted.')
+      showNotification('Announcement deleted successfully.')
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+      }
     }
   }
 
@@ -680,40 +774,40 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
     <div className="min-h-screen bg-[#f8f6fc] text-[#3d2a50]" style={{ fontFamily: 'Poppins, sans-serif' }}>
       {/* ── Top Navigation Bar ─────────────────────────────────────────────── */}
       <header className="bg-[#241335] text-white sticky top-0 z-30 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🏫</span>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-black text-base tracking-wide" style={{ fontFamily: 'Nunito, sans-serif' }}>
+        <div className="max-w-7xl mx-auto px-3.5 sm:px-6 py-2.5 sm:py-3.5 flex flex-wrap items-center justify-between gap-2.5 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <span className="text-xl sm:text-2xl shrink-0" aria-hidden="true">🏫</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className="font-black text-sm sm:text-base tracking-wide truncate max-w-[150px] min-[400px]:max-w-[200px] sm:max-w-none" style={{ fontFamily: 'Nunito, sans-serif' }}>
                   Abhyudaya Preschool
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase shrink-0 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   Admin Portal
                 </span>
               </div>
-              <p className="text-[11px] text-[#b8a8c8] truncate max-w-[240px] sm:max-w-none">
-                Logged in as: <span className="text-white font-semibold">{userEmail}</span>
+              <p className="text-[10px] sm:text-[11px] text-[#b8a8c8] truncate mt-0.5">
+                Logged in as: <span className="text-white font-medium">{userEmail}</span>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {onBackToSite && (
               <button
                 type="button"
                 onClick={onBackToSite}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold text-[#c8b8dc] hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5"
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold text-[#c8b8dc] hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5 shrink-0"
                 title="Return to the public preschool website"
               >
                 <span>🌐</span>
-                <span className="hidden sm:inline">Back to Website</span>
+                <span className="hidden min-[480px]:inline">Back to Website</span>
               </button>
             )}
             <button
               type="button"
               onClick={handleSignOut}
-              className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 border border-rose-500/30 transition-all flex items-center gap-1.5"
+              className="px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold bg-rose-500/20 text-rose-200 hover:bg-rose-500/30 border border-rose-500/30 transition-all flex items-center gap-1.5 shrink-0 active:scale-95 cursor-pointer"
             >
               <span>🚪</span>
               <span>Sign Out</span>
@@ -722,34 +816,48 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
         </div>
 
         {/* Tab Navigation Menu */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 overflow-x-auto scrollbar-none flex gap-1 border-t border-white/10">
-          {[
-            { id: 'overview', label: 'Overview', icon: '📊' },
-            { id: 'enquiries', label: 'Enquiries', icon: '📋', badge: enquiryCounts.pending },
-            { id: 'programs', label: 'Programs', icon: '🎒', badge: programs.length },
-            { id: 'events', label: 'Events', icon: '📅', badge: events.length },
-            { id: 'announcements', label: 'Announcements', icon: '📢' },
-            { id: 'gallery', label: 'Gallery', icon: '📸' },
-            { id: 'testimonials', label: 'Testimonials', icon: '⭐', badge: unapprovedTestimonialsCount, badgeColor: 'bg-amber-400 text-amber-900' },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as AdminTab)}
-              className={`py-2.5 px-3.5 sm:px-4 text-xs font-bold whitespace-nowrap transition-all border-b-2 flex items-center gap-2 ${
-                activeTab === tab.id
-                  ? 'border-[#b48de8] text-white bg-white/5'
-                  : 'border-transparent text-[#b8a8c8] hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
-              {typeof tab.badge === 'number' && tab.badge > 0 && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${tab.badgeColor || 'bg-[#b48de8] text-white'}`}>
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          ))}
+        <div className="border-t border-white/10 bg-[#1e0f2d] relative">
+          <div
+            role="tablist"
+            aria-label="Dashboard Sections"
+            className="max-w-7xl mx-auto px-2 sm:px-6 overflow-x-auto flex gap-1 py-1.5 scrollbar-thin"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            {[
+              { id: 'overview', label: 'Overview', icon: '📊' },
+              { id: 'enquiries', label: 'Enquiries', icon: '📋', badge: enquiryCounts.pending },
+              { id: 'programs', label: 'Programs', icon: '🎒', badge: programs.length },
+              { id: 'events', label: 'Events', icon: '📅', badge: events.length },
+              { id: 'announcements', label: 'Announcements', icon: '📢', badge: announcements.filter(a => a.published).length },
+              { id: 'gallery', label: 'Gallery', icon: '📸' },
+              { id: 'testimonials', label: 'Testimonials', icon: '⭐', badge: unapprovedTestimonialsCount, badgeColor: 'bg-amber-400 text-amber-900' },
+            ].map(tab => {
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  id={`admin-tab-${tab.id}`}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={`panel-${tab.id}`}
+                  onClick={() => setActiveTab(tab.id as AdminTab)}
+                  className={`min-h-[40px] py-2 px-3 sm:px-4 text-xs font-bold whitespace-nowrap transition-all rounded-lg flex items-center gap-1.5 sm:gap-2 shrink-0 cursor-pointer ${
+                    isActive
+                      ? 'bg-white/15 text-white font-extrabold border-b-2 border-[#b48de8]'
+                      : 'text-[#c8b8dc] hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <span aria-hidden="true">{tab.icon}</span>
+                  <span>{tab.label}</span>
+                  {typeof tab.badge === 'number' && tab.badge > 0 && (
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${tab.badgeColor || 'bg-[#b48de8] text-white'}`}>
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </header>
 
@@ -2187,6 +2295,20 @@ interface AdminPageProps {
 export default function AdminPage({ onBackToSite }: AdminPageProps) {
   const { user, loading, authError } = useAdminAuth()
 
+  useEffect(() => {
+    if (!loading && typeof window !== 'undefined') {
+      if (!user || !isAuthorizedAdmin(user)) {
+        if (window.location.pathname !== '/admin/login') {
+          window.history.replaceState(null, '', '/admin/login')
+        }
+      } else {
+        if (window.location.pathname === '/admin/login') {
+          window.history.replaceState(null, '', '/admin')
+        }
+      }
+    }
+  }, [user, loading])
+
   if (!isConfigured) {
     return (
       <div
@@ -2231,3 +2353,4 @@ export default function AdminPage({ onBackToSite }: AdminPageProps) {
 
   return <AdminDashboard userEmail={user.email} onBackToSite={onBackToSite} />
 }
+

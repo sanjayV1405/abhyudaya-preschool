@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react'
-import { submitEnquiry, submitCampusVisit } from './lib/db'
+import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react'
+import { submitEnquiry, submitCampusVisit, fetchAnnouncements, fetchEvents } from './lib/db'
+import { supabase } from './lib/supabase'
+import type { Announcement, PreschoolEvent } from './types/database'
 import { ScrollReveal } from './components/ScrollReveal'
 import { CountUp } from './components/CountUp'
 import { GalleryLightbox, type GalleryItemData } from './components/GalleryLightbox'
@@ -764,6 +766,79 @@ function CinematicLotusMascot({ assetVersion }: { assetVersion: string }) {
 }
 
 function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; onEnrollNow?: () => void }) {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [events, setEvents] = useState<PreschoolEvent[]>([])
+
+  async function loadPublicData() {
+    try {
+      const [anns, evts] = await Promise.all([
+        fetchAnnouncements(),
+        fetchEvents(),
+      ])
+      setAnnouncements(anns.filter(a => a.published))
+      setEvents(evts.filter(e => e.published))
+    } catch (err) {
+      console.error('[Public] Content load error:', err)
+    }
+  }
+
+  useEffect(() => {
+    loadPublicData()
+
+    function handleContentUpdate() {
+      loadPublicData()
+    }
+    window.addEventListener('preschool-content-updated', handleContentUpdate)
+
+    // Optional Supabase real-time sync if client exists
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let channel: any = null
+    if (supabase) {
+      try {
+        channel = (supabase as any)
+          .channel('public-content-sync')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => {
+            loadPublicData()
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => {
+            loadPublicData()
+          })
+          .subscribe()
+      } catch (err) {
+        console.warn('[Supabase Realtime] Setup error:', err)
+      }
+    }
+
+    return () => {
+      window.removeEventListener('preschool-content-updated', handleContentUpdate)
+      if (channel && supabase) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(supabase as any).removeChannel(channel)
+      }
+    }
+  }, [])
+
+  // Sort events so upcoming events appear first in chronological order
+  const sortedEvents = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    return [...events].sort((a, b) => {
+      const [ay, am, ad] = a.event_date.split('-').map(Number)
+      const [by, bm, bd] = b.event_date.split('-').map(Number)
+      const dateA = new Date(ay, am - 1, ad)
+      const dateB = new Date(by, bm - 1, bd)
+
+      const aUpcoming = dateA >= today
+      const bUpcoming = dateB >= today
+
+      if (aUpcoming && !bUpcoming) return -1
+      if (!aUpcoming && bUpcoming) return 1
+      if (aUpcoming && bUpcoming) return dateA.getTime() - dateB.getTime()
+      return dateB.getTime() - dateA.getTime()
+    })
+  }, [events])
+
   return (
     <div className="relative min-h-screen overflow-hidden" style={{ background: 'linear-gradient(160deg, #f5f0fd 0%, #e8f5f0 40%, #fdf5e8 100%)' }}>
       {/* Decorations */}
@@ -787,7 +862,11 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
           <div>
             <div className="hero-anim-badge inline-flex items-center gap-2 bg-white/80 backdrop-blur-md px-4 py-2 rounded-full text-xs sm:text-sm font-black text-[#7a5a90] mb-6 shadow-sm border border-[#e0d0f8]">
               <span className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse" />
-              <span>🌟 Admissions Open 2026–2027 • SS Nagar, Perumanallur</span>
+              <span>
+                {announcements.length > 0
+                  ? announcements[0].title
+                  : '🌟 Admissions Open 2026–2027 • SS Nagar, Perumanallur'}
+              </span>
             </div>
             <h1 className="hero-anim-title text-4xl sm:text-5xl md:text-6xl font-black leading-tight mb-4 tracking-tight" style={{ fontFamily: 'Nunito, sans-serif' }}>
               Where Little Minds Begin{' '}
@@ -845,6 +924,58 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
           <CinematicLotusMascot assetVersion={ASSET_V} />
         </div>
 
+        {/* Announcements & School Notice Board */}
+        {announcements.length > 0 && (
+          <ScrollReveal delay={100} className="mt-10 sm:mt-14">
+            <div className="bg-gradient-to-br from-[#f8f2ff] via-[#f2faf6] to-[#fff7ed] rounded-3xl p-6 sm:p-8 border border-[#e8dcf5] shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-[#e8dcf5]/80">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl sm:text-4xl shrink-0" aria-hidden="true">📢</span>
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-black text-[#5a3a8a]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                      School Notice Board &amp; Announcements
+                    </h2>
+                    <p className="text-xs sm:text-sm text-[#7a6a8a] mt-0.5">
+                      Official updates, admissions notifications, and parent circulars
+                    </p>
+                  </div>
+                </div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 self-start sm:self-auto shrink-0">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Notices ({announcements.length})
+                </span>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                {announcements.map(ann => (
+                  <div
+                    key={ann.id}
+                    className="bg-white rounded-2xl p-5 shadow-sm border border-[#ede2f8] hover:shadow-md transition-shadow flex flex-col justify-between gap-3"
+                  >
+                    <div>
+                      <h3 className="font-black text-sm sm:text-base text-[#3d2a50] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                        {ann.title}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-[#5a4a6a] leading-relaxed whitespace-pre-line">
+                        {ann.content}
+                      </p>
+                    </div>
+                    <div className="text-[11px] font-medium text-[#9a88a8] flex items-center justify-between pt-2.5 border-t border-[#f5efff]">
+                      <span className="text-[#8a7a9a]">Abhyudaya Notice</span>
+                      <button
+                        onClick={onEnrollNow || (() => setActive('Contact'))}
+                        className="text-[#5a3a8a] font-bold hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        Enquire Now →
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </ScrollReveal>
+        )}
+
         {/* Why choose us strip */}
         <ScrollReveal delay={100} className="mt-8 sm:mt-12 md:mt-16">
           <div className="text-center mb-8">
@@ -859,7 +990,7 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
               { icon: '💗', title: 'Caring Teachers', color: '#ffd6b0', text: 'Nurturing with patience & love' },
               { icon: '🎨', title: 'Activity Learning', color: '#e0d0f8', text: 'Hands-on play-based curriculum' },
               { icon: '⭐', title: 'Individual Care', color: '#b8d8f8', text: 'Every child is truly seen' },
-            ].map(({ icon, title, color, text }, idx) => (
+            ].map(({ icon, title, color, text }) => (
               <div
                 key={title}
                 className="card-hover rounded-2xl p-5 flex flex-col gap-2 shadow-sm border border-white/80 transition-all cursor-default"
@@ -871,6 +1002,93 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
               </div>
             ))}
           </div>
+        </ScrollReveal>
+
+        {/* School Events & Celebrations */}
+        <ScrollReveal delay={120} className="mt-16 sm:mt-20">
+          <div className="text-center mb-8">
+            <span className="text-4xl inline-block mb-1 sm:mb-2" aria-hidden="true">📅</span>
+            <h2 className="text-2xl sm:text-3xl font-black text-[#5a3a8a]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+              Upcoming Events &amp; Celebrations ✨
+            </h2>
+            <p className="text-sm text-[#7a6a8a] mt-1 max-w-lg mx-auto">
+              Sports days, parent open houses, festive gatherings, and fun-filled campus activities
+            </p>
+          </div>
+
+          {sortedEvents.length === 0 ? (
+            <div className="bg-white/80 rounded-3xl p-8 text-center border border-[#e8dff5] max-w-md mx-auto shadow-xs">
+              <p className="text-xs sm:text-sm text-[#6a5a7a] font-medium">
+                No new public events scheduled right now. Visit our campus Monday to Saturday, 9:00 AM – 4:00 PM!
+              </p>
+              <button
+                onClick={onEnrollNow || (() => setActive('Contact'))}
+                className="mt-4 px-6 py-2.5 rounded-full bg-[#5a3a8a] text-white text-xs font-bold hover:bg-[#4a2a7a] transition-all cursor-pointer"
+              >
+                Schedule a Campus Visit 🏡
+              </button>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+              {sortedEvents.map(evt => {
+                const [year, month, day] = evt.event_date.split('-').map(Number)
+                const eventDateObj = new Date(year, month - 1, day)
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                const isUpcoming = eventDateObj >= today
+                const dateDisplay = eventDateObj.toLocaleDateString('en-IN', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })
+
+                return (
+                  <div
+                    key={evt.id}
+                    className="card-hover bg-white rounded-3xl p-6 shadow-sm border border-[#f0e8f8] flex flex-col justify-between gap-4"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-[#f5efff] text-[#5a3a8a] border border-[#e0d0f8]">
+                          <span>📅</span> {dateDisplay}
+                        </span>
+                        {isUpcoming ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            Upcoming
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-gray-100 text-gray-600 border border-gray-300">
+                            Completed
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-base sm:text-lg font-black text-[#3d2a50] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                        {evt.title}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-[#6a5a7a] leading-relaxed">
+                        {evt.description || 'Join our preschool family for this joyful event!'}
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-[#f5f0fa] flex items-center justify-between">
+                      <span className="text-[11px] text-[#9a88a8]">SS Nagar Campus</span>
+                      <a
+                        href={`https://wa.me/919788713822?text=${encodeURIComponent(
+                          `Hello Abhyudaya Preschool, I would like to enquire about attending "${evt.title}" on ${evt.event_date}.`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-bold text-[#25D366] hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>💬</span> RSVP / Enquire
+                      </a>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </ScrollReveal>
 
         {/* Testimonials */}
@@ -2262,12 +2480,14 @@ I have submitted a campus visit request:
 function Footer({
   setActive,
   onEnrollNow,
+  onAdminClick,
 }: {
   setActive: (p: string) => void
   onEnrollNow?: () => void
+  onAdminClick?: () => void
 }) {
   return (
-    <footer className="bg-[#2d1a40] text-white py-14 px-4 border-t border-[#4a3060]">
+    <footer className="bg-[#2d1a40] text-white pt-14 pb-24 sm:pb-14 px-4 border-t border-[#4a3060]">
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-10">
           <div>
@@ -2292,11 +2512,20 @@ function Footer({
             <ul className="space-y-2 text-sm text-[#b0a0c0]">
               {NAV_ITEMS.map(item => (
                 <li key={item}>
-                  <button onClick={() => setActive(item)} className="hover:text-white transition-colors">
+                  <button onClick={() => setActive(item)} className="hover:text-white transition-colors cursor-pointer">
                     {item}
                   </button>
                 </li>
               ))}
+              <li className="pt-2 border-t border-[#4a3060]/70 mt-2">
+                <button
+                  onClick={onAdminClick || (() => setActive('Admin'))}
+                  className="hover:text-white text-[#d4c5ea] transition-colors flex items-center gap-1.5 cursor-pointer font-bold text-xs"
+                >
+                  <span>🔐</span>
+                  <span>Staff / Admin Portal</span>
+                </button>
+              </li>
             </ul>
           </div>
 
@@ -2340,9 +2569,9 @@ function Footer({
           </div>
         </div>
 
-        <div className="border-t border-[#4a3060] pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-[#8a7a9a]">
+        <div className="border-t border-[#4a3060] pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-[#8a7a9a] pr-16 sm:pr-0">
           <span>© 2026 Abhyudaya Preschool. Made with 💗 for little ones.</span>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
             <span>Hours: 9:00 AM – 4:00 PM</span>
             <span>•</span>
             <button
@@ -2353,11 +2582,12 @@ function Footer({
             </button>
             <span>•</span>
             <button
-              onClick={() => setActive('Admin')}
-              className="hover:text-[#c0b0d0] cursor-pointer opacity-40 hover:opacity-70 transition-opacity"
-              title="Admin Portal"
+              onClick={onAdminClick || (() => setActive('Admin'))}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-[#c8b8dc] hover:text-white border border-white/10 transition-all font-semibold cursor-pointer"
+              title="Admin Portal Login"
             >
-              Admin
+              <span>🔐</span>
+              <span>Admin Portal</span>
             </button>
           </div>
         </div>
@@ -2397,7 +2627,7 @@ function ScrollProgressBar() {
 
 function FloatingWhatsApp() {
   return (
-    <aside aria-label="WhatsApp Contact" className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-40">
+    <aside aria-label="WhatsApp Contact" className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] right-4 sm:bottom-6 sm:right-6 z-40">
       <a
         href="https://wa.me/919788713822?text=Hello%20Abhyudaya%20Preschool%2C%20I%20would%20like%20to%20enquire%20about%20admissions"
         target="_blank"
@@ -2480,11 +2710,13 @@ export default function App() {
     }
   }
 
-  function navigate(page: string) {
+  function navigate(page: string, customPath?: string) {
     setActive(page)
     if (typeof window !== 'undefined') {
-      if (page === 'Admin') {
-        window.history.pushState(null, '', '/admin')
+      if (customPath) {
+        window.history.pushState(null, '', customPath)
+      } else if (page === 'Admin') {
+        window.history.pushState(null, '', '/admin/login')
       } else if (page === 'Home') {
         window.history.pushState(null, '', '/')
       } else {
@@ -2492,6 +2724,35 @@ export default function App() {
       }
     }
     topRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  async function handleAdminClick() {
+    let isAuthenticated = false
+    if (supabase) {
+      try {
+        const { data } = await supabase.auth.getSession()
+        const user = data.session?.user
+        if (user) {
+          const email = (user.email ?? '').trim().toLowerCase()
+          const isAdmin =
+            user.app_metadata?.role === 'admin' ||
+            [
+              'abhyudayapreschool@gmail.com',
+              'jothisanjay659@gmail.com',
+              'sreelakshmij67@gmail.com',
+              'vkvsvishw91@gmail.com',
+            ].includes(email)
+          if (isAdmin) isAuthenticated = true
+        }
+      } catch {
+        // ignore
+      }
+    }
+    if (isAuthenticated) {
+      navigate('Admin', '/admin')
+    } else {
+      navigate('Admin', '/admin/login')
+    }
   }
 
   // If on Admin page, render only the standalone Admin portal
@@ -2523,7 +2784,7 @@ export default function App() {
         onEnrollNow={handleEnrollNow}
       />
       <Page setActive={navigate} onEnrollNow={handleEnrollNow} />
-      <Footer setActive={navigate} onEnrollNow={handleEnrollNow} />
+      <Footer setActive={navigate} onEnrollNow={handleEnrollNow} onAdminClick={handleAdminClick} />
       <FloatingWhatsApp />
     </div>
   )

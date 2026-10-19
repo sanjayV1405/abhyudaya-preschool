@@ -208,30 +208,90 @@ export async function fetchGallery(): Promise<GalleryRecord[]> {
   return (data ?? []) as GalleryRecord[]
 }
 
+export function getFormattedFutureDate(offsetDays: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() + offsetDays)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+export const DEFAULT_ANNOUNCEMENTS: Announcement[] = [
+  {
+    id: 'seed-ann-1',
+    title: '🌟 Admissions Open 2026–2027',
+    content:
+      'Admissions are now open for Daycare, Playgroup, Nursery, LKG, and UKG at our SS Nagar, Perumanallur campus. Visit us between 9:00 AM and 4:00 PM for campus tours.',
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+  },
+  {
+    id: 'seed-ann-2',
+    title: '🎒 Extended Daycare Timings Support Working Parents',
+    content:
+      'Full-day care and afterschool supervision available with nutritious meals, rest sessions, and guided learning from 9:00 AM to 4:00 PM.',
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+  },
+]
+
+export const DEFAULT_EVENTS: PreschoolEvent[] = [
+  {
+    id: 'seed-evt-1',
+    title: 'Annual Sports & Play Day',
+    description:
+      'A day filled with games, races, and active celebrations for our little champions and their families.',
+    event_date: getFormattedFutureDate(14),
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+  },
+  {
+    id: 'seed-evt-2',
+    title: 'Open House & Campus Tour Weekend',
+    description:
+      'Join our founder Bharani S and educators to explore our classrooms, curriculum, and interactive play areas.',
+    event_date: getFormattedFutureDate(21),
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+  },
+]
+
 export async function fetchAnnouncements(): Promise<Announcement[]> {
-  if (!supabase) return []
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from('announcements') as any)
-    .select('*')
-    .eq('published', true)
-    .order('created_at', { ascending: false })
-  if (error) {
-    console.error('[Announcements] Fetch error:', (error as { message: string }).message)
-    return []
+  if (!supabase) return DEFAULT_ANNOUNCEMENTS
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.from('announcements') as any)
+      .select('*')
+      .eq('published', true)
+      .order('created_at', { ascending: false })
+    if (error) {
+      console.error('[Announcements] Fetch error:', (error as { message: string }).message)
+      return DEFAULT_ANNOUNCEMENTS
+    }
+    return (data ?? []) as Announcement[]
+  } catch (err) {
+    console.error('[Announcements] Unexpected fetch error:', err)
+    return DEFAULT_ANNOUNCEMENTS
   }
-  return (data ?? []) as Announcement[]
 }
 
 export async function fetchEvents(): Promise<PreschoolEvent[]> {
-  if (!supabase) return []
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from('events') as any)
-    .select('*')
-    .eq('published', true)
-    .order('event_date', { ascending: true })
-  if (error) {
-    console.error('[Events] Fetch error:', (error as { message: string }).message)
-    return []
+  if (!supabase) return DEFAULT_EVENTS
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.from('events') as any)
+      .select('*')
+      .eq('published', true)
+      .order('event_date', { ascending: true })
+    if (error) {
+      console.error('[Events] Fetch error:', (error as { message: string }).message)
+      return DEFAULT_EVENTS
+    }
+    return (data ?? []) as PreschoolEvent[]
+  } catch (err) {
+    console.error('[Events] Unexpected fetch error:', err)
+    return DEFAULT_EVENTS
   }
-  return (data ?? []) as PreschoolEvent[]
 }
+

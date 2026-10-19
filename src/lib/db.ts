@@ -180,18 +180,59 @@ export async function fetchPrograms(): Promise<Program[]> {
   }))
 }
 
+export const DEFAULT_TESTIMONIALS: TestimonialRecord[] = [
+  {
+    id: 'seed-test-1',
+    parent_display_name: 'Priya',
+    child_info: 'Mother of Aarav, 4',
+    feedback:
+      'Abhyudaya Preschool transformed my shy boy into a confident, curious child. The teachers are like second moms!',
+    avatar: '👩‍💼',
+    rating: 5,
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+  },
+  {
+    id: 'seed-test-2',
+    parent_display_name: 'Meera',
+    child_info: 'Mother of Ananya, 3',
+    feedback:
+      'As a working parent, the caring environment and convenient 9:00 AM to 4:00 PM schedule gives me complete peace of mind. My daughter loves every moment here!',
+    avatar: '👩',
+    rating: 5,
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+  },
+  {
+    id: 'seed-test-3',
+    parent_display_name: 'Sunita',
+    child_info: 'Mother of Rohan, 5',
+    feedback:
+      'The play-based learning approach is outstanding. Rohan learned to read, paint, and make friends — all through fun!',
+    avatar: '👩‍🦱',
+    rating: 5,
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+  },
+]
+
 export async function fetchTestimonials(): Promise<TestimonialRecord[]> {
-  if (!supabase) return []
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from('testimonials') as any)
-    .select('*')
-    .eq('published', true)
-    .order('created_at', { ascending: true })
-  if (error) {
-    console.error('[Testimonials] Fetch error:', (error as { message: string }).message)
-    return []
+  if (!supabase) return DEFAULT_TESTIMONIALS
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.from('testimonials') as any)
+      .select('*')
+      .eq('published', true)
+      .order('created_at', { ascending: false })
+    if (error) {
+      console.error('[Testimonials] Fetch error:', (error as { message: string }).message)
+      return DEFAULT_TESTIMONIALS
+    }
+    return (data ?? []) as TestimonialRecord[]
+  } catch (err) {
+    console.error('[Testimonials] Unexpected fetch error:', err)
+    return DEFAULT_TESTIMONIALS
   }
-  return (data ?? []) as TestimonialRecord[]
 }
 
 export async function fetchGallery(): Promise<GalleryRecord[]> {

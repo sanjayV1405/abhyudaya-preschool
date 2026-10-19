@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react'
-import { submitEnquiry, submitCampusVisit, fetchAnnouncements, fetchEvents } from './lib/db'
+import { submitEnquiry, submitCampusVisit, fetchAnnouncements, fetchEvents, fetchTestimonials } from './lib/db'
 import { supabase } from './lib/supabase'
-import type { Announcement, PreschoolEvent } from './types/database'
+import type { Announcement, PreschoolEvent, TestimonialRecord } from './types/database'
 import { ScrollReveal } from './components/ScrollReveal'
 import { CountUp } from './components/CountUp'
 import { GalleryLightbox, type GalleryItemData } from './components/GalleryLightbox'
@@ -584,12 +584,6 @@ function Navbar({
 
 // ── Home Page ────────────────────────────────────────────────────────────────
 
-const TESTIMONIALS = [
-  { name: 'Priya', child: 'Mother of Aarav, 4', text: 'Abhyudaya Preschool transformed my shy boy into a confident, curious child. The teachers are like second moms!', avatar: '👩‍💼' },
-  { name: 'Meera', child: 'Mother of Ananya, 3', text: 'As a working parent, the caring environment and convenient 9:00 AM to 4:00 PM schedule gives me complete peace of mind. My daughter loves every moment here!', avatar: '👩' },
-  { name: 'Sunita', child: 'Mother of Rohan, 5', text: 'The play-based learning approach is outstanding. Rohan learned to read, paint, and make friends — all through fun!', avatar: '👩‍🦱' },
-]
-
 // ── Cinematic Hero Lotus Mascot with Directional Assembly ───────────────────
 
 function CinematicLotusMascot({ assetVersion }: { assetVersion: string }) {
@@ -768,15 +762,18 @@ function CinematicLotusMascot({ assetVersion }: { assetVersion: string }) {
 function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; onEnrollNow?: () => void }) {
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [events, setEvents] = useState<PreschoolEvent[]>([])
+  const [testimonials, setTestimonials] = useState<TestimonialRecord[]>([])
 
   async function loadPublicData() {
     try {
-      const [anns, evts] = await Promise.all([
+      const [anns, evts, tsts] = await Promise.all([
         fetchAnnouncements(),
         fetchEvents(),
+        fetchTestimonials(),
       ])
       setAnnouncements(anns.filter(a => a.published))
       setEvents(evts.filter(e => e.published))
+      setTestimonials(tsts.filter(t => t.published))
     } catch (err) {
       console.error('[Public] Content load error:', err)
     }
@@ -801,6 +798,9 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
             loadPublicData()
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => {
+            loadPublicData()
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'testimonials' }, () => {
             loadPublicData()
           })
           .subscribe()
@@ -1097,23 +1097,35 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
             💬 Words From Our Parents
           </h2>
           <p className="text-center text-[#7a6a8a] text-sm mb-10">Real experiences from our preschool family</p>
-          <div className="grid md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map(({ name, child, text, avatar }) => (
-              <div key={name} className="card-hover bg-white rounded-3xl p-6 shadow-sm border border-[#f0e8f8] flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="text-4xl">{avatar}</div>
-                    <div className="text-[#f5a623] text-sm tracking-wide">★★★★★</div>
+          {testimonials.length === 0 ? (
+            <div className="bg-white/80 rounded-3xl p-8 text-center border border-[#e8dff5] max-w-md mx-auto shadow-xs">
+              <p className="text-xs sm:text-sm text-[#6a5a7a] font-medium">
+                Parent reviews and testimonials will appear here once approved by our team.
+              </p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-6">
+              {testimonials.map(item => (
+                <div key={item.id} className="card-hover bg-white rounded-3xl p-6 shadow-sm border border-[#f0e8f8] flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="text-4xl">{item.avatar || '👩‍💼'}</div>
+                      <div className="text-[#f5a623] text-sm tracking-wide">
+                        {'★'.repeat(Math.max(1, Math.min(5, item.rating || 5)))}
+                      </div>
+                    </div>
+                    <p className="text-[#5a4a6a] leading-relaxed mb-4 italic text-sm">"{item.feedback}"</p>
                   </div>
-                  <p className="text-[#5a4a6a] leading-relaxed mb-4 italic text-sm">"{text}"</p>
+                  <div className="pt-2 border-t border-[#f5f0fa]">
+                    <div className="font-black text-[#5a3a8a] text-sm" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                      {item.parent_display_name}
+                    </div>
+                    <div className="text-xs text-[#9a88a8]">{item.child_info || 'Abhyudaya Parent'}</div>
+                  </div>
                 </div>
-                <div className="pt-2 border-t border-[#f5f0fa]">
-                  <div className="font-black text-[#5a3a8a] text-sm" style={{ fontFamily: 'Nunito, sans-serif' }}>{name}</div>
-                  <div className="text-xs text-[#9a88a8]">{child}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </ScrollReveal>
 
         {/* Visit CTA */}

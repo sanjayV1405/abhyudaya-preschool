@@ -415,7 +415,10 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
   // ── Testimonial Actions (Approval & Publishing) ─────────────────────────────
 
   async function toggleTestimonialPublished(item: TestimonialRecord) {
-    if (!supabase) return
+    if (!supabase) {
+      showError('Database is not connected. Please verify your Supabase configuration.')
+      return
+    }
     const newStatus = !item.published
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase.from('testimonials') as any)
@@ -431,47 +434,79 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
           ? `Approved and published testimonial from "${item.parent_display_name}".`
           : `Unpublished testimonial from "${item.parent_display_name}".`,
       )
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+      }
+      fetchAllData()
     }
   }
 
   async function saveTestimonial(data: Partial<TestimonialRecord>) {
-    if (!supabase) return
-    if (!data.parent_display_name || !data.feedback) {
-      alert('Parent name and feedback are required.')
+    if (!supabase) {
+      showError('Database is not connected. Please verify your Supabase configuration.')
       return
+    }
+    const parentName = data.parent_display_name?.trim()
+    const feedback = data.feedback?.trim()
+    if (!parentName || !feedback) {
+      showError('Parent name and feedback are required.')
+      return
+    }
+
+    const payload = {
+      parent_display_name: parentName,
+      feedback,
+      child_info: data.child_info?.trim() || null,
+      avatar: data.avatar?.trim() || '👩‍💼',
+      rating: typeof data.rating === 'number' ? Math.max(1, Math.min(5, data.rating)) : 5,
+      published: Boolean(data.published),
     }
 
     if (data.id) {
       // Edit
-      const { error } = await supabase.from('testimonials').update(data).eq('id', data.id)
+      const { error } = await supabase.from('testimonials').update(payload).eq('id', data.id)
       if (error) {
-        showError(error.message)
+        showError('Failed to update testimonial: ' + error.message)
       } else {
         showNotification('Testimonial updated.')
         setTestimonialModal({ open: false })
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+        }
         fetchAllData()
       }
     } else {
       // Insert
-      const { error } = await supabase.from('testimonials').insert([data])
+      const { error } = await supabase.from('testimonials').insert([payload])
       if (error) {
-        showError(error.message)
+        showError('Failed to add testimonial: ' + error.message)
       } else {
         showNotification('New testimonial added.')
         setTestimonialModal({ open: false })
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+        }
         fetchAllData()
       }
     }
   }
 
   async function deleteTestimonial(id: string) {
-    if (!confirm('Delete this testimonial?')) return
-    if (!supabase) return
+    if (!confirm('Are you sure you want to delete this testimonial? This action cannot be undone.')) return
+    if (!supabase) {
+      showError('Database is not connected.')
+      return
+    }
     const { error } = await supabase.from('testimonials').delete().eq('id', id)
-    if (error) showError(error.message)
-    else {
+    if (error) {
+      showError('Failed to delete testimonial: ' + error.message)
+    } else {
       setTestimonials(prev => prev.filter(t => t.id !== id))
       showNotification('Testimonial deleted.')
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+      }
+      fetchAllData()
     }
   }
 

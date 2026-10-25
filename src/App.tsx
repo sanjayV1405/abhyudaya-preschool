@@ -1,7 +1,21 @@
 import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react'
-import { submitEnquiry, submitCampusVisit, fetchAnnouncements, fetchEvents, fetchTestimonials } from './lib/db'
+import {
+  submitEnquiry,
+  submitCampusVisit,
+  fetchAnnouncements,
+  fetchEvents,
+  fetchTestimonials,
+  fetchPrograms,
+  fetchGallery,
+} from './lib/db'
 import { supabase } from './lib/supabase'
-import type { Announcement, PreschoolEvent, TestimonialRecord } from './types/database'
+import type {
+  Announcement,
+  PreschoolEvent,
+  TestimonialRecord,
+  Program,
+  GalleryRecord,
+} from './types/database'
 import { ScrollReveal } from './components/ScrollReveal'
 import { CountUp } from './components/CountUp'
 import { GalleryLightbox, type GalleryItemData } from './components/GalleryLightbox'
@@ -1441,20 +1455,80 @@ function AboutPage() {
 
 // ── Gallery Page ─────────────────────────────────────────────────────────────
 
-const GALLERY_CATS = ['All', 'Classroom', 'Activities', 'Outdoor', 'Mealtime', 'Meditation']
-
-const GALLERY_ITEMS = [
-  { cat: 'Classroom', emoji: '🏫', label: 'Our Colourful Classroom', bg: '#ffd6b0', localImg: `/gallery1.jpg${ASSET_V}` },
-  { cat: 'Activities', emoji: '💃', label: 'Fun Movement Activity', bg: '#e0d0f8', localImg: `/gallery2.jpg${ASSET_V}` },
-  { cat: 'Outdoor', emoji: '🎈', label: 'Balloon Day Celebration', bg: '#b8f0d8', localImg: `/gallery3.jpg${ASSET_V}` },
-  { cat: 'Meditation', emoji: '🧘', label: 'Morning Meditation', bg: '#b8d8f8', localImg: `/gallery4.jpg${ASSET_V}` },
-  { cat: 'Mealtime', emoji: '🍱', label: 'Snack Time Together', bg: '#ffd8e4', localImg: `/gallery5.jpg${ASSET_V}` },
-]
-
 function GalleryPage() {
+  const [gallery, setGallery] = useState<GalleryRecord[]>([])
+  const [loading, setLoading] = useState(true)
   const [active, setActive] = useState('All')
   const [selectedPhoto, setSelectedPhoto] = useState<GalleryItemData | null>(null)
-  const filtered = active === 'All' ? GALLERY_ITEMS : GALLERY_ITEMS.filter(i => i.cat === active)
+
+  const loadGalleryData = async () => {
+    try {
+      setLoading(true)
+      const data = await fetchGallery()
+      setGallery(data.filter(item => item.published !== false))
+    } catch (err) {
+      console.error('[GalleryPage] Failed to fetch gallery:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadGalleryData()
+
+    const handleUpdate = () => {
+      loadGalleryData()
+    }
+    window.addEventListener('preschool-content-updated', handleUpdate)
+
+    // Optional Supabase Realtime sync
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let channel: any = null
+    if (supabase) {
+      try {
+        channel = (supabase as any)
+          .channel('public-gallery-sync')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'gallery' }, () => {
+            loadGalleryData()
+          })
+          .subscribe()
+      } catch (err) {
+        console.warn('[Supabase Realtime] Gallery sync error:', err)
+      }
+    }
+
+    return () => {
+      window.removeEventListener('preschool-content-updated', handleUpdate)
+      if (channel && supabase) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(supabase as any).removeChannel(channel)
+      }
+    }
+  }, [])
+
+  // Dynamic categories with preset fallback
+  const categories = useMemo(() => {
+    const cats = new Set<string>(['All', 'Classroom', 'Activities', 'Outdoor', 'Mealtime', 'Meditation'])
+    gallery.forEach(item => {
+      if (item.category) cats.add(item.category)
+    })
+    return Array.from(cats)
+  }, [gallery])
+
+  // Map to lightbox-compatible structure
+  const items: GalleryItemData[] = useMemo(() => {
+    const bgColors = ['#ffd6b0', '#e0d0f8', '#b8f0d8', '#b8d8f8', '#ffd8e4']
+    return gallery.map((item, idx) => ({
+      cat: item.category || 'Classroom',
+      emoji: item.emoji || '📸',
+      label: item.title,
+      bg: bgColors[idx % bgColors.length],
+      localImg: item.image_url || `/gallery1.jpg${ASSET_V}`,
+      desc: item.description,
+    }))
+  }, [gallery])
+
+  const filtered = active === 'All' ? items : items.filter(i => i.cat === active)
 
   return (
     <div
@@ -1476,12 +1550,15 @@ function GalleryPage() {
 
         {/* Filter tabs */}
         <ScrollReveal delay={100} className="flex flex-wrap gap-2 justify-center mb-10">
-          {GALLERY_CATS.map(cat => (
+          {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setActive(cat)}
-              className={`px-5 py-2 rounded-full font-bold text-sm transition-all duration-200 cursor-pointer ${active === cat ? 'bg-[#5a3a8a] text-white shadow-md' : 'bg-white text-[#5a3a8a] border border-[#e0d0f8] hover:bg-[#f0e8fc]'
-                }`}
+              className={`px-5 py-2 rounded-full font-bold text-sm transition-all duration-200 cursor-pointer ${
+                active === cat
+                  ? 'bg-[#5a3a8a] text-white shadow-md'
+                  : 'bg-white text-[#5a3a8a] border border-[#e0d0f8] hover:bg-[#f0e8fc]'
+              }`}
               style={{ fontFamily: 'Nunito, sans-serif' }}
             >
               {cat}
@@ -1489,47 +1566,65 @@ function GalleryPage() {
           ))}
         </ScrollReveal>
 
-        {/* Grid */}
-        <ScrollReveal delay={150} className="grid sm:grid-cols-2 md:grid-cols-3 gap-5">
-          {filtered.map(item => (
-            <div
-              key={item.label}
-              onClick={() => setSelectedPhoto(item)}
-              className="group relative rounded-3xl overflow-hidden shadow-md border border-white/80 bg-white cursor-pointer card-hover"
-            >
-              {/* Image */}
-              <div className="relative h-60 overflow-hidden" style={{ backgroundColor: item.bg }}>
-                <img
-                  src={item.localImg}
-                  alt={item.label}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
-                />
-                {/* Overlay on hover */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#2d1a40]/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-4">
-                  <div>
-                    <div className="text-white font-black text-base" style={{ fontFamily: 'Nunito, sans-serif' }}>{item.label}</div>
-                    <div className="text-[#e0d0f8] text-xs mt-0.5">{item.cat}</div>
+        {/* Grid or Loading / Empty */}
+        {loading && gallery.length === 0 ? (
+          <div className="py-20 text-center">
+            <span className="text-4xl inline-block animate-bounce-soft mb-3">📸</span>
+            <p className="text-[#8a7a9a] font-bold text-sm">Loading gallery photos...</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-16 text-center bg-white/70 backdrop-blur-sm rounded-3xl border border-[#e0d0f8] max-w-md mx-auto p-8 shadow-sm">
+            <span className="text-4xl mb-3 block">🖼️</span>
+            <h4 className="font-black text-[#3d2a50] text-base mb-1" style={{ fontFamily: 'Nunito, sans-serif' }}>
+              No photos found
+            </h4>
+            <p className="text-xs text-[#8a7a9a]">No photos available under "{active}". Choose another category above.</p>
+          </div>
+        ) : (
+          <ScrollReveal delay={150} className="grid sm:grid-cols-2 md:grid-cols-3 gap-5">
+            {filtered.map(item => (
+              <div
+                key={item.label + item.localImg}
+                onClick={() => setSelectedPhoto(item)}
+                className="group relative rounded-3xl overflow-hidden shadow-md border border-white/80 bg-white cursor-pointer card-hover"
+              >
+                {/* Image */}
+                <div className="relative h-60 overflow-hidden" style={{ backgroundColor: item.bg }}>
+                  <img
+                    src={item.localImg}
+                    alt={item.label}
+                    onError={e => {
+                      ;(e.currentTarget as HTMLImageElement).src = `/gallery1.jpg${ASSET_V}`
+                    }}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
+                  />
+                  {/* Overlay on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#2d1a40]/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-4">
+                    <div>
+                      <div className="text-white font-black text-base" style={{ fontFamily: 'Nunito, sans-serif' }}>{item.label}</div>
+                      <div className="text-[#e0d0f8] text-xs mt-0.5">{item.cat}</div>
+                    </div>
+                    <span className="px-3 py-1 bg-white/30 backdrop-blur-md rounded-full text-white text-xs font-bold">🔍 View</span>
                   </div>
-                  <span className="px-3 py-1 bg-white/30 backdrop-blur-md rounded-full text-white text-xs font-bold">🔍 View</span>
+                  {/* Category badge */}
+                  <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold text-white shadow-md" style={{ background: 'rgba(90,58,138,0.75)', backdropFilter: 'blur(6px)' }}>
+                    {item.emoji} {item.cat}
+                  </div>
                 </div>
-                {/* Category badge */}
-                <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold text-white shadow-md" style={{ background: 'rgba(90,58,138,0.75)', backdropFilter: 'blur(6px)' }}>
-                  {item.emoji} {item.cat}
+                {/* Card footer */}
+                <div className="p-4 flex items-center justify-between bg-white border-t border-[#f5f0fc]">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{item.emoji}</span>
+                    <div>
+                      <div className="font-black text-[#3d2a50] text-sm" style={{ fontFamily: 'Nunito, sans-serif' }}>{item.label}</div>
+                      <div className="text-xs text-[#9a88a8] mt-0.5">Abhyudaya Preschool</div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              {/* Card footer */}
-              <div className="p-4 flex items-center justify-between bg-white border-t border-[#f5f0fc]">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{item.emoji}</span>
-                  <div>
-                    <div className="font-black text-[#3d2a50] text-sm" style={{ fontFamily: 'Nunito, sans-serif' }}>{item.label}</div>
-                    <div className="text-xs text-[#9a88a8] mt-0.5">Abhyudaya Preschool</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </ScrollReveal>
+            ))}
+          </ScrollReveal>
+        )}
 
         {/* Lightbox Modal */}
         <GalleryLightbox
@@ -1603,76 +1698,62 @@ function ProgramsPage({
   setActive: (p: string) => void
   onEnrollNow?: () => void
 }) {
+  const [programs, setPrograms] = useState<Program[]>([])
+  const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
-  const programs = [
-    {
-      id: 'daycare',
-      category: 'daycare',
-      name: 'Daycare',
-      age: '2+ years',
-      icon: '🍼',
-      color: '#ffd6b0',
-      time: 'Mon–Sat | 9:00 AM – 4:00 PM',
-      desc: 'A safe and loving environment for toddlers 2 years and above. Supervised care, play, rest, and meals with gentle, attentive teachers.',
-      features: ['Safe & supervised care', 'Age-appropriate play', 'Nutritious meals & snacks', 'Rest & nap time', 'Warm, home-like atmosphere'],
-    },
-    {
-      id: 'playgroup',
-      category: 'foundations',
-      name: 'Playgroup',
-      age: 'Ages 2 – 3 yrs',
-      icon: '🎪',
-      color: '#e0d0f8',
-      time: 'Mon–Sat | 9:00 AM – 12:30 PM / 4:00 PM',
-      desc: 'A gentle first step into school life. Sensory play, rhymes, and social bonding in a cosy, home-like setting.',
-      features: ['Sensory & tactile play', 'Circle time & songs', 'Basic motor skills', 'Social bonding activities', 'Toilet training support'],
-    },
-    {
-      id: 'nursery',
-      category: 'foundations',
-      name: 'Nursery',
-      age: 'Ages 3 – 4 yrs',
-      icon: '🌱',
-      color: '#b8f0d8',
-      time: 'Mon–Sat | 9:00 AM – 1:00 PM / 4:00 PM',
-      desc: 'Building curiosity and creativity through structured play, early language skills, and joyful exploration.',
-      features: ['Pre-reading & pre-writing', 'Number concepts & math play', 'Art, craft & music', 'Storytelling sessions', 'Social & emotional skills'],
-    },
-    {
-      id: 'kindergarten',
-      category: 'kindergarten',
-      name: 'LKG & UKG',
-      age: 'Ages 4 – 6 yrs',
-      icon: '📚',
-      color: '#b8d8f8',
-      time: 'Mon–Sat | 9:00 AM – 3:30 PM / 4:00 PM',
-      desc: 'Comprehensive kindergarten program preparing children for primary school with academics, creativity, and character building.',
-      features: ['Reading & writing readiness', 'Numeracy & math concepts', 'Science exploration', 'Art, craft & outdoor activities', 'School readiness skills'],
-    },
-    {
-      id: 'afterschool',
-      category: 'daycare',
-      name: 'Afterschool Care',
-      age: 'School-going kids',
-      icon: '🎒',
-      color: '#fff0b0',
-      time: 'Mon–Sat | Up to 4:00 PM',
-      desc: 'Safe, supervised afterschool care with homework help, activities, and fun — giving working parents peace of mind.',
-      features: ['Homework assistance', 'Reading & activity time', 'Healthy snacks', 'Indoor & outdoor games', 'Safe pickup & care'],
-    },
-    {
-      id: 'weekend',
-      category: 'weekend',
-      name: 'Weekend Care',
-      age: 'All ages',
-      icon: '🌈',
-      color: '#ffd8e4',
-      time: 'Weekends | Special Sessions',
-      desc: 'Fun-filled weekend sessions with creative activities, games, and learning — giving parents a well-deserved break.',
-      features: ['Creative arts & crafts', 'Music & movement', 'Group games & storytelling', 'Structured fun activities', 'Flexible weekend timings'],
-    },
-  ]
+  const loadProgramsData = async () => {
+    try {
+      setLoading(true)
+      const data = await fetchPrograms()
+      setPrograms(data.filter(p => p.published !== false))
+    } catch (err) {
+      console.error('[ProgramsPage] Failed to fetch programs:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadProgramsData()
+
+    const handleUpdate = () => {
+      loadProgramsData()
+    }
+    window.addEventListener('preschool-content-updated', handleUpdate)
+
+    // Optional Supabase Realtime sync
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let channel: any = null
+    if (supabase) {
+      try {
+        channel = (supabase as any)
+          .channel('public-programs-sync')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'programs' }, () => {
+            loadProgramsData()
+          })
+          .subscribe()
+      } catch (err) {
+        console.warn('[Supabase Realtime] Programs sync error:', err)
+      }
+    }
+
+    return () => {
+      window.removeEventListener('preschool-content-updated', handleUpdate)
+      if (channel && supabase) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(supabase as any).removeChannel(channel)
+      }
+    }
+  }, [])
+
+  const categoryColors: Record<string, string> = {
+    foundations: '#e0d0f8',
+    daycare: '#ffd6b0',
+    kindergarten: '#b8d8f8',
+    weekend: '#ffd8e4',
+  }
+  const fallbackColors = ['#ffd6b0', '#e0d0f8', '#b8f0d8', '#b8d8f8', '#fff0b0', '#ffd8e4']
 
   const filteredPrograms = selectedCategory === 'all'
     ? programs
@@ -1801,10 +1882,11 @@ function ProgramsPage({
               <button
                 key={tab.id}
                 onClick={() => setSelectedCategory(tab.id)}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${selectedCategory === tab.id
-                  ? 'bg-[#5a3a8a] text-white shadow-sm'
-                  : 'text-[#6a5a7a] hover:bg-[#f5f0fc] hover:text-[#5a3a8a]'
-                  }`}
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  selectedCategory === tab.id
+                    ? 'bg-[#5a3a8a] text-white shadow-sm'
+                    : 'text-[#6a5a7a] hover:bg-[#f5f0fc] hover:text-[#5a3a8a]'
+                }`}
                 style={{ fontFamily: 'Nunito, sans-serif' }}
               >
                 {tab.label}
@@ -1814,44 +1896,68 @@ function ProgramsPage({
         </ScrollReveal>
 
         {/* Program cards grid */}
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 mb-16">
-          {filteredPrograms.map(({ name, age, icon, color, time, desc, features }) => (
-            <div
-              key={name}
-              className="card-hover rounded-3xl overflow-hidden shadow-sm border border-white bg-white flex flex-col justify-between"
-            >
-              <div>
-                <div className="p-6" style={{ backgroundColor: color + 'cc' }}>
-                  <div className="text-5xl mb-3">{icon}</div>
-                  <h3 className="text-2xl font-black text-[#3d2a50] mb-1" style={{ fontFamily: 'Nunito, sans-serif' }}>{name}</h3>
-                  <div className="text-sm font-bold text-[#5a4a6a]">{age}</div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-2 bg-white/70 backdrop-blur-sm rounded-full text-xs font-bold text-[#5a3a7a]">
-                    ⏰ {time}
+        {loading && programs.length === 0 ? (
+          <div className="py-20 text-center">
+            <span className="text-4xl inline-block animate-bounce-soft mb-3">🎒</span>
+            <p className="text-[#8a7a9a] font-bold text-sm">Loading curriculum &amp; programs...</p>
+          </div>
+        ) : filteredPrograms.length === 0 ? (
+          <div className="py-16 text-center bg-white/70 backdrop-blur-sm rounded-3xl border border-[#e0d0f8] max-w-md mx-auto p-8 shadow-sm mb-16">
+            <span className="text-4xl mb-3 block">🎒</span>
+            <h4 className="font-black text-[#3d2a50] text-base mb-1" style={{ fontFamily: 'Nunito, sans-serif' }}>
+              No programs found
+            </h4>
+            <p className="text-xs text-[#8a7a9a]">No active programs currently match this filter. Select "All Programs" above.</p>
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 mb-16">
+            {filteredPrograms.map((prog, idx) => {
+              const cardBg = categoryColors[prog.category] || fallbackColors[idx % fallbackColors.length]
+              const features = Array.isArray(prog.features) ? prog.features : []
+
+              return (
+                <div
+                  key={prog.id || prog.title}
+                  className="card-hover rounded-3xl overflow-hidden shadow-sm border border-white bg-white flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="p-6" style={{ backgroundColor: cardBg + 'cc' }}>
+                      <div className="text-5xl mb-3">{prog.icon || '🎒'}</div>
+                      <h3 className="text-2xl font-black text-[#3d2a50] mb-1" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                        {prog.title}
+                      </h3>
+                      <div className="text-sm font-bold text-[#5a4a6a]">{prog.age_group}</div>
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-2 bg-white/70 backdrop-blur-sm rounded-full text-xs font-bold text-[#5a3a7a]">
+                        ⏰ {prog.timings || 'Mon–Sat | 9:00 AM – 4:00 PM'}
+                      </div>
+                    </div>
+                    <div className="p-6">
+                      <p className="text-sm text-[#5a4a6a] leading-relaxed mb-4">{prog.description}</p>
+                      {features.length > 0 && (
+                        <ul className="space-y-2 mb-6">
+                          {features.map((f, fIdx) => (
+                            <li key={fIdx} className="flex items-center gap-2 text-sm text-[#5a4a6a]">
+                              <span className="text-[#10b981] font-black">✓</span> {f}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="p-6 pt-0">
+                    <button
+                      onClick={onEnrollNow || (() => setActive('Contact'))}
+                      className="btn-primary w-full py-2.5 px-4 bg-[#f4effc] text-[#5a3a8a] hover:bg-[#5a3a8a] hover:text-white rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-[#e0d0f8]"
+                    >
+                      <span>Enquire for {prog.title} →</span>
+                    </button>
                   </div>
                 </div>
-                <div className="p-6">
-                  <p className="text-sm text-[#5a4a6a] leading-relaxed mb-4">{desc}</p>
-                  <ul className="space-y-2 mb-6">
-                    {features.map(f => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-[#5a4a6a]">
-                        <span className="text-[#10b981] font-black">✓</span> {f}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              <div className="p-6 pt-0">
-                <button
-                  onClick={onEnrollNow || (() => setActive('Contact'))}
-                  className="btn-primary w-full py-2.5 px-4 bg-[#f4effc] text-[#5a3a8a] hover:bg-[#5a3a8a] hover:text-white rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-[#e0d0f8]"
-                >
-                  <span>Enquire for {name} →</span>
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+              )
+            })}
+          </div>
+        )}
 
         {/* Working parents banner */}
         <ScrollReveal delay={150} className="rounded-3xl p-8 mb-14 text-center shadow-sm" style={{ background: 'linear-gradient(135deg, #b8f0d8 0%, #e0d0f8 100%)' }}>

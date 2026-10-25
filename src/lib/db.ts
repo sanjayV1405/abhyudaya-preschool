@@ -162,22 +162,155 @@ export async function submitCampusVisit(rawData: CampusVisitSubmission): Promise
 
 // ── Read public data ──────────────────────────────────────────────────────────
 
+export const DEFAULT_PROGRAMS: Program[] = [
+  {
+    id: 'prog-daycare',
+    title: 'Daycare',
+    category: 'daycare',
+    age_group: '2+ years',
+    icon: '🍼',
+    color: '#ffd6b0',
+    timings: 'Mon–Sat | 9:00 AM – 4:00 PM',
+    description:
+      'A safe and loving environment for toddlers 2 years and above. Supervised care, play, rest, and meals with gentle, attentive teachers.',
+    features: [
+      'Safe & supervised care',
+      'Age-appropriate play',
+      'Nutritious meals & snacks',
+      'Rest & nap time',
+      'Warm, home-like atmosphere',
+    ],
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+    updated_at: '2026-03-01T00:00:00Z',
+  },
+  {
+    id: 'prog-playgroup',
+    title: 'Playgroup',
+    category: 'foundations',
+    age_group: 'Ages 2 – 3 yrs',
+    icon: '🎪',
+    color: '#e0d0f8',
+    timings: 'Mon–Sat | 9:00 AM – 12:30 PM / 4:00 PM',
+    description:
+      'A gentle first step into school life. Sensory play, rhymes, and social bonding in a cosy, home-like setting.',
+    features: [
+      'Sensory & tactile play',
+      'Circle time & songs',
+      'Basic motor skills',
+      'Social bonding activities',
+      'Toilet training support',
+    ],
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+    updated_at: '2026-03-01T00:00:00Z',
+  },
+  {
+    id: 'prog-nursery',
+    title: 'Nursery',
+    category: 'foundations',
+    age_group: 'Ages 3 – 4 yrs',
+    icon: '🌱',
+    color: '#b8f0d8',
+    timings: 'Mon–Sat | 9:00 AM – 1:00 PM / 4:00 PM',
+    description:
+      'Building curiosity and creativity through structured play, early language skills, and joyful exploration.',
+    features: [
+      'Pre-reading & pre-writing',
+      'Number concepts & math play',
+      'Art, craft & music',
+      'Storytelling sessions',
+      'Social & emotional skills',
+    ],
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+    updated_at: '2026-03-01T00:00:00Z',
+  },
+  {
+    id: 'prog-kindergarten',
+    title: 'LKG & UKG',
+    category: 'kindergarten',
+    age_group: 'Ages 4 – 6 yrs',
+    icon: '📚',
+    color: '#b8d8f8',
+    timings: 'Mon–Sat | 9:00 AM – 3:30 PM / 4:00 PM',
+    description:
+      'Comprehensive kindergarten program preparing children for primary school with academics, creativity, and character building.',
+    features: [
+      'Reading & writing readiness',
+      'Numeracy & math concepts',
+      'Science exploration',
+      'Art, craft & outdoor activities',
+      'School readiness skills',
+    ],
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+    updated_at: '2026-03-01T00:00:00Z',
+  },
+  {
+    id: 'prog-afterschool',
+    title: 'Afterschool Care',
+    category: 'daycare',
+    age_group: 'School-going kids',
+    icon: '🎒',
+    color: '#fff0b0',
+    timings: 'Mon–Sat | Up to 4:00 PM',
+    description:
+      'Safe, supervised afterschool care with homework help, activities, and fun — giving working parents peace of mind.',
+    features: [
+      'Homework assistance',
+      'Reading & activity time',
+      'Healthy snacks',
+      'Indoor & outdoor games',
+      'Safe pickup & care',
+    ],
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+    updated_at: '2026-03-01T00:00:00Z',
+  },
+  {
+    id: 'prog-weekend',
+    title: 'Weekend Care',
+    category: 'weekend',
+    age_group: 'All ages',
+    icon: '🌈',
+    color: '#ffd8e4',
+    timings: 'Weekends | Special Sessions',
+    description:
+      'Fun-filled weekend sessions with creative activities, games, and learning — giving parents a well-deserved break.',
+    features: [
+      'Creative arts & crafts',
+      'Music & movement',
+      'Group games & storytelling',
+      'Structured fun activities',
+      'Flexible weekend timings',
+    ],
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+    updated_at: '2026-03-01T00:00:00Z',
+  },
+]
+
 export async function fetchPrograms(): Promise<Program[]> {
-  if (!supabase) return []
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from('programs') as any)
-    .select('*')
-    .eq('published', true)
-    .order('created_at', { ascending: true })
-  if (error) {
-    console.error('[Programs] Fetch error:', (error as { message: string }).message)
-    return []
+  if (!supabase) return DEFAULT_PROGRAMS
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.from('programs') as any)
+      .select('*')
+      .eq('published', true)
+      .order('created_at', { ascending: true })
+    if (error) {
+      console.error('[Programs] Fetch error:', (error as { message: string }).message)
+      return DEFAULT_PROGRAMS
+    }
+    return ((data ?? []) as Program[]).map(p => ({
+      ...p,
+      features: Array.isArray(p.features) ? p.features : [],
+    }))
+  } catch (err) {
+    console.error('[Programs] Unexpected fetch error:', err)
+    return DEFAULT_PROGRAMS
   }
-  // Normalize features from JSONB (Supabase returns it as parsed JS array already)
-  return ((data ?? []) as Program[]).map(p => ({
-    ...p,
-    features: Array.isArray(p.features) ? p.features : [],
-  }))
 }
 
 export const DEFAULT_TESTIMONIALS: TestimonialRecord[] = [
@@ -235,18 +368,128 @@ export async function fetchTestimonials(): Promise<TestimonialRecord[]> {
   }
 }
 
+export const DEFAULT_GALLERY: GalleryRecord[] = [
+  {
+    id: 'seed-gal-1',
+    title: 'Our Colourful Classroom',
+    category: 'Classroom',
+    emoji: '🏫',
+    description: 'Child-safe learning spaces designed for joyful curiosity',
+    image_url: '/gallery1.jpg',
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+  },
+  {
+    id: 'seed-gal-2',
+    title: 'Fun Movement Activity',
+    category: 'Activities',
+    emoji: '💃',
+    description: 'Kids expressing rhythm and coordination through dance and music',
+    image_url: '/gallery2.jpg',
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+  },
+  {
+    id: 'seed-gal-3',
+    title: 'Balloon Day Celebration',
+    category: 'Outdoor',
+    emoji: '🎈',
+    description: 'Outdoor joyous festivities and laughter under open skies',
+    image_url: '/gallery3.jpg',
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+  },
+  {
+    id: 'seed-gal-4',
+    title: 'Morning Meditation',
+    category: 'Meditation',
+    emoji: '🧘',
+    description: 'Calm mindfulness and focus circle at the start of our day',
+    image_url: '/gallery4.jpg',
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+  },
+  {
+    id: 'seed-gal-5',
+    title: 'Snack Time Together',
+    category: 'Mealtime',
+    emoji: '🍱',
+    description: 'Healthy, nutritious snacks shared in a warm community circle',
+    image_url: '/gallery5.jpg',
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+  },
+]
+
 export async function fetchGallery(): Promise<GalleryRecord[]> {
-  if (!supabase) return []
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from('gallery') as any)
-    .select('*')
-    .eq('published', true)
-    .order('created_at', { ascending: true })
-  if (error) {
-    console.error('[Gallery] Fetch error:', (error as { message: string }).message)
-    return []
+  if (!supabase) return DEFAULT_GALLERY
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.from('gallery') as any)
+      .select('*')
+      .eq('published', true)
+      .order('created_at', { ascending: false })
+    if (error) {
+      console.error('[Gallery] Fetch error:', (error as { message: string }).message)
+      return DEFAULT_GALLERY
+    }
+    return (data ?? []) as GalleryRecord[]
+  } catch (err) {
+    console.error('[Gallery] Unexpected fetch error:', err)
+    return DEFAULT_GALLERY
   }
-  return (data ?? []) as GalleryRecord[]
+}
+
+/**
+ * Upload an image file to the Supabase Storage 'gallery' bucket.
+ * Restricts to JPG, PNG, WebP up to 5MB.
+ */
+export async function uploadGalleryImage(file: File): Promise<{ url: string; error?: string }> {
+  if (!supabase) {
+    return { url: '', error: 'Database is not connected. Please verify your Supabase configuration.' }
+  }
+
+  const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  if (!validTypes.includes(file.type)) {
+    return { url: '', error: 'Invalid file format. Please select a JPG, PNG, or WebP image.' }
+  }
+
+  const maxSize = 5 * 1024 * 1024 // 5 MB
+  if (file.size > maxSize) {
+    return { url: '', error: 'Image size exceeds the 5MB limit. Please choose a smaller file.' }
+  }
+
+  try {
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const safeBase = file.name
+      .replace(/\.[^/.]+$/, '')
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .slice(0, 30)
+    const filePath = `photos/${Date.now()}_${safeBase}.${ext}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('gallery')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+      })
+
+    if (uploadError) {
+      console.error('[Supabase Storage] Upload error:', uploadError)
+      return { url: '', error: uploadError.message }
+    }
+
+    const { data: urlData } = supabase.storage.from('gallery').getPublicUrl(filePath)
+    if (!urlData?.publicUrl) {
+      return { url: '', error: 'Could not obtain public URL for the uploaded photo.' }
+    }
+
+    return { url: urlData.publicUrl }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unexpected upload error'
+    console.error('[Supabase Storage] Unexpected error:', err)
+    return { url: '', error: message }
+  }
 }
 
 export function getFormattedFutureDate(offsetDays: number): string {

@@ -2465,7 +2465,7 @@ function GalleryEditorModal({
       if (selectedFile) {
         setUploadStatus('Uploading photo to Supabase Storage...')
         const uploadRes = await uploadGalleryImage(selectedFile)
-        if (!uploadRes.success || !uploadRes.url) {
+        if (uploadRes.error || !uploadRes.url) {
           throw new Error(uploadRes.error || 'Failed to upload photo to Supabase Storage.')
         }
         finalImageUrl = uploadRes.url

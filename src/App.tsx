@@ -2236,13 +2236,13 @@ I have submitted a campus visit request:
                 <h2 className="text-lg font-black text-[#3d2a50] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>Campus Address</h2>
                 <p className="text-sm text-[#5a4a6a] leading-relaxed">
                   <strong>Abhyudaya Preschool</strong><br />
-                  SS Nagar, Avinashi Road,<br />
-                  Perumanallur, Tiruppur
+                  No. 3-546, NH Road, SS Nagar,<br />
+                  Perumanallur, Tamil Nadu 641666
                 </p>
-                <div className="text-xs text-[#9a887a] mt-2">Convenient access from Avinashi Road with ample parking.</div>
+                <div className="text-xs text-[#9a887a] mt-2">Convenient access from NH Road / Avinashi Road with ample parking.</div>
               </div>
               <a
-                href="https://www.google.com/maps/search/?api=1&query=SS+Nagar+Avinashi+Road+Perumanallur"
+                href="https://maps.app.goo.gl/Yt7i6VRuM6yTaf2K8"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-4 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-[#ffd6b0]/50 text-[#8a4a20] hover:bg-[#ffd6b0]/70 rounded-xl font-bold text-xs transition-all"
@@ -2500,7 +2500,7 @@ I have submitted a campus visit request:
                     <h3 className="font-black text-[#3d2a50] text-base" style={{ fontFamily: 'Nunito, sans-serif' }}>Location &amp; Directions</h3>
                   </div>
                   <a
-                    href="https://www.google.com/maps/search/?api=1&query=SS+Nagar+Avinashi+Road+Perumanallur"
+                    href="https://maps.app.goo.gl/Yt7i6VRuM6yTaf2K8"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs font-bold text-[#5a3a8a] hover:underline"
@@ -2513,7 +2513,7 @@ I have submitted a campus visit request:
                 <div className="rounded-2xl overflow-hidden shadow-inner border border-[#e0d0f8] mb-3 relative aspect-video bg-[#f0e8fc]">
                   <iframe
                     title="Abhyudaya Preschool Location Map"
-                    src="https://maps.google.com/maps?q=SS+Nagar,+Avinashi+Road,+Perumanallur,+Tiruppur&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                    src="https://maps.google.com/maps?q=Abhyudaya+Preschool,+No.+3-546,+NH+Road,+SS+Nagar,+Perumanallur,+Tamil+Nadu+641666&t=&z=16&ie=UTF8&iwloc=&output=embed"
                     className="w-full h-full border-0"
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
@@ -2521,9 +2521,9 @@ I have submitted a campus visit request:
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-[#6a5a7a]">
-                  <span>📍 SS Nagar, Avinashi Road, Perumanallur</span>
+                  <span>📍 No. 3-546, NH Road, SS Nagar, Perumanallur</span>
                   <a
-                    href="https://www.google.com/maps/search/?api=1&query=SS+Nagar+Avinashi+Road+Perumanallur"
+                    href="https://maps.app.goo.gl/Yt7i6VRuM6yTaf2K8"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-bold text-[#1a6a45] bg-[#b8f0d8] px-2.5 py-1 rounded-lg hover:bg-[#9ee2c0]"
@@ -2678,7 +2678,15 @@ function Footer({
                 </a>
               </li>
               <li className="flex items-start gap-2">
-                <span>📍</span> <span>SS Nagar, Avinashi Road, Perumanallur</span>
+                <span>📍</span>
+                <a
+                  href="https://maps.app.goo.gl/Yt7i6VRuM6yTaf2K8"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white transition-colors"
+                >
+                  No. 3-546, NH Road, SS Nagar, Perumanallur
+                </a>
               </li>
               <li className="flex items-center gap-2">
                 <span>👤</span> <strong>Bharani S</strong>

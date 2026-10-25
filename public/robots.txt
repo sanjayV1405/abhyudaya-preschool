@@ -1,0 +1,7 @@
+# robots.txt for Abhyudaya Preschool
+User-agent: *
+Allow: /
+Disallow: /admin
+
+# Sitemap URL
+Sitemap: https://abhyudaya-preschool.web.app/sitemap.xml

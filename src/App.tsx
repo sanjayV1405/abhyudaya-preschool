@@ -2560,15 +2560,28 @@ function ContactPage() {
                     className="w-full px-3.5 py-2.5 rounded-xl border border-[#e0d0f8] focus:outline-none focus:ring-2 focus:ring-[#b48de8] text-xs sm:text-sm bg-[#fdfaff] transition-all"
                   />
                   <div className="grid grid-cols-2 gap-2">
-                    <input
-                      required
-                      type="date"
-                      value={visitForm.date}
-                      onChange={e => setVisitForm({ ...visitForm, date: e.target.value })}
-                      placeholder="Date *"
-                      min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-3 py-2.5 rounded-xl border border-[#e0d0f8] focus:outline-none focus:ring-2 focus:ring-[#b48de8] text-xs bg-[#fdfaff] transition-all"
-                    />
+                    <div className="relative">
+                      <input
+                        required
+                        type="date"
+                        value={visitForm.date}
+                        onChange={e => setVisitForm({ ...visitForm, date: e.target.value })}
+                        onClick={e => {
+                          try {
+                            ;(e.currentTarget as HTMLInputElement).showPicker?.()
+                          } catch {}
+                        }}
+                        min={new Date().toISOString().split('T')[0]}
+                        className={`w-full px-3 py-2.5 rounded-xl border border-[#e0d0f8] focus:outline-none focus:ring-2 focus:ring-[#b48de8] text-xs bg-[#fdfaff] transition-all cursor-pointer ${
+                          !visitForm.date ? 'text-transparent [&::-webkit-datetime-edit]:text-transparent' : 'text-[#3d2a50]'
+                        }`}
+                      />
+                      {!visitForm.date && (
+                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#a090b8]">
+                          Date *
+                        </span>
+                      )}
+                    </div>
                     <select
                       value={visitForm.slot}
                       onChange={e => setVisitForm({ ...visitForm, slot: e.target.value })}

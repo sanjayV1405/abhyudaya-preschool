@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 
 export interface GalleryItemData {
+  id?: string
   cat: string
   emoji: string
   label: string
@@ -24,12 +25,12 @@ export function GalleryLightbox({ item, items = [], onSelect, onClose }: Gallery
       if (e.key === 'Escape') {
         onClose()
       } else if (e.key === 'ArrowRight' && items.length > 1 && onSelect) {
-        const currentIndex = items.findIndex(i => i.label === item.label)
-        const nextIndex = (currentIndex + 1) % items.length
+        const idx = items.findIndex(i => (item.id && i.id === item.id) || i.localImg === item.localImg || i.label === item.label)
+        const nextIndex = (idx + 1) % items.length
         onSelect(items[nextIndex])
       } else if (e.key === 'ArrowLeft' && items.length > 1 && onSelect) {
-        const currentIndex = items.findIndex(i => i.label === item.label)
-        const prevIndex = (currentIndex - 1 + items.length) % items.length
+        const idx = items.findIndex(i => (item.id && i.id === item.id) || i.localImg === item.localImg || i.label === item.label)
+        const prevIndex = (idx - 1 + items.length) % items.length
         onSelect(items[prevIndex])
       }
     }
@@ -44,7 +45,11 @@ export function GalleryLightbox({ item, items = [], onSelect, onClose }: Gallery
 
   if (!item) return null
 
-  const currentIndex = items.findIndex(i => i.label === item.label)
+  const getItemIndex = (target: GalleryItemData) => {
+    return items.findIndex(i => (target.id && i.id === target.id) || i.localImg === target.localImg || i.label === target.label)
+  }
+
+  const currentIndex = getItemIndex(item)
   const hasMultiple = items.length > 1 && !!onSelect
 
   function handlePrev(e: React.MouseEvent) {

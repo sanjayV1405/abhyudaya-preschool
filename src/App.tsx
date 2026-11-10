@@ -2,11 +2,14 @@ import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'rea
 import {
   submitEnquiry,
   submitCampusVisit,
+  sendEnquiryEmail,
   fetchAnnouncements,
   fetchEvents,
   fetchTestimonials,
   fetchPrograms,
   fetchGallery,
+  CATEGORY_EMOJIS,
+  GALLERY_CATEGORIES,
 } from './lib/db'
 import { supabase } from './lib/supabase'
 import type {
@@ -473,7 +476,7 @@ function Navbar({
         }`}
     >
       <div
-        className={`max-w-6xl mx-auto px-4 flex items-center justify-between transition-all duration-300 ${scrolled ? 'py-1 sm:py-1.5' : 'py-2 sm:py-2.5'
+        className={`max-w-6xl lg:max-w-7xl 2xl:max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between transition-all duration-300 ${scrolled ? 'py-1 sm:py-1.5' : 'py-2 sm:py-2.5'
           }`}
       >
         {/* Logo */}
@@ -649,9 +652,8 @@ function CinematicLotusMascot({ assetVersion }: { assetVersion: string }) {
     >
       {/* Soft radiant ambient glow behind lotus */}
       <div
-        className={`absolute inset-0 -z-10 flex items-center justify-center pointer-events-none translate-x-0 md:translate-x-3 lg:translate-x-4 translate-y-6 md:translate-y-12 transition-opacity duration-1000 ${
-          triggered ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`absolute inset-0 -z-10 flex items-center justify-center pointer-events-none translate-x-0 md:translate-x-3 lg:translate-x-4 translate-y-6 md:translate-y-12 transition-opacity duration-1000 ${triggered ? 'opacity-100' : 'opacity-0'
+          }`}
       >
         <div
           className={`${triggered ? 'lotus-glow-anim' : ''} w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-full`}
@@ -676,9 +678,8 @@ function CinematicLotusMascot({ assetVersion }: { assetVersion: string }) {
 
         {/* 2 & 3. Lotus Container - Triggered on Scroll */}
         <div
-          className={`relative flex items-center justify-center transition-opacity duration-500 ${
-            triggered ? 'lotus-assembled-container opacity-100' : 'opacity-0'
-          }`}
+          className={`relative flex items-center justify-center transition-opacity duration-500 ${triggered ? 'lotus-assembled-container opacity-100' : 'opacity-0'
+            }`}
         >
           {/* Floating subtle ambient particles around lotus */}
           {triggered && (
@@ -760,9 +761,8 @@ function CinematicLotusMascot({ assetVersion }: { assetVersion: string }) {
           <img
             src={`/lotus.png${assetVersion}`}
             alt="Blooming Lotus"
-            className={`relative w-auto h-48 sm:h-64 md:h-[300px] lg:h-[320px] object-contain transition-opacity duration-700 ease-out ${
-              triggered ? 'opacity-100' : 'opacity-0'
-            }`}
+            className={`relative w-auto h-48 sm:h-64 md:h-[300px] lg:h-[320px] object-contain transition-opacity duration-700 ease-out ${triggered ? 'opacity-100' : 'opacity-0'
+              }`}
             style={{
               transitionDelay: triggered ? '1100ms' : '0ms',
             }}
@@ -827,7 +827,7 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
       window.removeEventListener('preschool-content-updated', handleContentUpdate)
       if (channel && supabase) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ;(supabase as any).removeChannel(channel)
+        ; (supabase as any).removeChannel(channel)
       }
     }
   }, [])
@@ -868,27 +868,28 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
       <Star color="#f4a26b" size={14} style={{ position: 'absolute', top: 250, left: '5%' }} />
 
       {/* Rainbow arc */}
+
       <div className="absolute top-0 left-0 right-0 h-2 rainbow-bar" />
 
       {/* Hero */}
-      <div className="relative max-w-6xl mx-auto px-4 pt-24 sm:pt-28 pb-8 sm:pb-12 md:pb-16">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
+      <div className="relative max-w-6xl lg:max-w-7xl 2xl:max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-8 sm:pb-12 md:pb-16">
+        <div className="grid md:grid-cols-2 lg:grid-cols-[1.25fr_1fr] gap-8 lg:gap-12 items-center">
           <div>
             <div className="hero-anim-badge inline-flex items-center gap-2 bg-white/80 backdrop-blur-md px-4 py-2 rounded-full text-xs sm:text-sm font-black text-[#7a5a90] mb-6 shadow-sm border border-[#e0d0f8]">
               <span className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse" />
               <span>
                 {announcements.length > 0
                   ? announcements[0].title
-                  : '🌟 Admissions Open 2026–2027 • SS Nagar, Perumanallur'}
+                  : '🌟 Admissions Open 2027–2028'}
               </span>
             </div>
             <h1 className="hero-anim-title text-4xl sm:text-5xl md:text-6xl font-black leading-tight mb-4 tracking-tight" style={{ fontFamily: 'Nunito, sans-serif' }}>
-              Where Little Minds Begin{' '}
+              <span className="sr-only">Abhyudaya Preschool – </span>Where Little Minds Begin{' '}
               <span className="rainbow-text">Big Journeys</span>{' '}
               &amp; Shine ✨
             </h1>
             <p className="hero-anim-desc text-base sm:text-lg text-[#6a5a7a] leading-relaxed mb-8" style={{ maxWidth: 480 }}>
-              A safe, joyful haven in Perumanallur where tiny explorers discover the world through purposeful play, early creativity, and warm friendships — guided with love every day.
+              A safe, joyful heaven in Perumanallur where tiny explorers discover the world through purposeful play, early creativity and warm friendships — guided with love every day.
             </p>
             <div className="hero-anim-cta flex flex-wrap gap-4 items-center">
               <button
@@ -906,30 +907,36 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
             </div>
 
             {/* Animated Trust Stats */}
-            <div className="hero-anim-stats flex flex-wrap gap-6 mt-10">
+            <div className="hero-anim-stats flex flex-wrap lg:flex-nowrap items-baseline justify-between gap-4 sm:gap-6 lg:gap-3 xl:gap-5 mt-10 w-full">
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-black text-[#5a3a8a]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                <div className="text-2xl sm:text-3xl lg:text-xl xl:text-2xl 2xl:text-3xl font-black text-[#5a3a8a] whitespace-nowrap" style={{ fontFamily: 'Nunito, sans-serif' }}>
                   <CountUp end={200} suffix="+" />
                 </div>
-                <div className="text-xs text-[#9a88a8] font-medium">Happy Kids</div>
+                <div className="text-xs text-[#9a88a8] font-medium whitespace-nowrap">Happy Kids</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-black text-[#5a3a8a]" style={{ fontFamily: 'Nunito, sans-serif' }}>
-                  <CountUp end={12} suffix="+" />
+                <div className="text-2xl sm:text-3xl lg:text-xl xl:text-2xl 2xl:text-3xl font-black text-[#5a3a8a] whitespace-nowrap" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                  <CountUp end={7} suffix="+" />
                 </div>
-                <div className="text-xs text-[#9a88a8] font-medium">Years of Joy</div>
+                <div className="text-xs text-[#9a88a8] font-medium whitespace-nowrap">Years of Joy</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-black text-[#5a3a8a]" style={{ fontFamily: 'Nunito, sans-serif' }}>
-                  <CountUp end={20} suffix="+" />
+                <div className="text-2xl sm:text-3xl lg:text-xl xl:text-2xl 2xl:text-3xl font-black text-[#5a3a8a] whitespace-nowrap" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                  <CountUp end={8} suffix="+" />
                 </div>
-                <div className="text-xs text-[#9a88a8] font-medium">Expert Teachers</div>
+                <div className="text-xs text-[#9a88a8] font-medium whitespace-nowrap">Expert Teachers</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-black text-[#5a3a8a]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                <div className="text-2xl sm:text-3xl lg:text-xl xl:text-2xl 2xl:text-3xl font-black text-[#5a3a8a] whitespace-nowrap" style={{ fontFamily: 'Nunito, sans-serif' }}>
                   9 AM – 4 PM
                 </div>
-                <div className="text-xs text-[#9a88a8] font-medium">School Timings</div>
+                <div className="text-xs text-[#9a88a8] font-medium whitespace-nowrap">School Timings</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl sm:text-3xl lg:text-xl xl:text-2xl 2xl:text-3xl font-black text-[#5a3a8a] whitespace-nowrap" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                  8:30 AM – 7:30 PM
+                </div>
+                <div className="text-xs text-[#9a88a8] font-medium whitespace-nowrap">DayCare</div>
               </div>
             </div>
           </div>
@@ -950,7 +957,7 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
                       School Notice Board &amp; Announcements
                     </h2>
                     <p className="text-xs sm:text-sm text-[#7a6a8a] mt-0.5">
-                      Official updates, admissions notifications, and parent circulars
+                      Official updates, admissions notifications and parent circulars
                     </p>
                   </div>
                 </div>
@@ -1002,7 +1009,7 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
             {[
               { icon: '🛡️', title: 'Safe Campus', color: '#b8f0d8', text: 'CCTV, secure gates & trained staff' },
               { icon: '💗', title: 'Caring Teachers', color: '#ffd6b0', text: 'Nurturing with patience & love' },
-              { icon: '🎨', title: 'Activity Learning', color: '#e0d0f8', text: 'Hands-on play-based curriculum' },
+              { icon: '🎨', title: 'Activity based Learning', color: '#e0d0f8', text: 'Hands-on play-based curriculum' },
               { icon: '⭐', title: 'Individual Care', color: '#b8d8f8', text: 'Every child is truly seen' },
             ].map(({ icon, title, color, text }) => (
               <div
@@ -1026,7 +1033,7 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
               Upcoming Events &amp; Celebrations ✨
             </h2>
             <p className="text-sm text-[#7a6a8a] mt-1 max-w-lg mx-auto">
-              Sports days, parent open houses, festive gatherings, and fun-filled campus activities
+              Sports days, parent open houses, festive gatherings and fun-filled campus activities
             </p>
           </div>
 
@@ -1108,7 +1115,7 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
         {/* Testimonials */}
         <ScrollReveal delay={150} className="mt-20">
           <h2 className="text-3xl font-black text-center text-[#5a3a8a] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>
-            💬 Words From Our Parents
+            💬 Heartfelt Experience From Our Parents
           </h2>
           <p className="text-center text-[#7a6a8a] text-sm mb-10">Real experiences from our preschool family</p>
           {testimonials.length === 0 ? (
@@ -1132,9 +1139,8 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
                   </div>
                   <div className="pt-2 border-t border-[#f5f0fa]">
                     <div className="font-black text-[#5a3a8a] text-sm" style={{ fontFamily: 'Nunito, sans-serif' }}>
-                      {item.parent_display_name}
+                      {item.child_info || 'Abhyudaya Parent'}
                     </div>
-                    <div className="text-xs text-[#9a88a8]">{item.child_info || 'Abhyudaya Parent'}</div>
                   </div>
                 </div>
               ))}
@@ -1148,7 +1154,7 @@ function HomePage({ setActive, onEnrollNow }: { setActive: (p: string) => void; 
             <div className="text-5xl mb-4">🏡</div>
             <h3 className="text-3xl font-black text-[#3d2a50] mb-3" style={{ fontFamily: 'Nunito, sans-serif' }}>Schedule a Friendly Campus Visit</h3>
             <p className="text-[#5a4a6a] max-w-lg mx-auto mb-6 text-sm sm:text-base">
-              Come see the magic for yourself! Meet our loving educators, explore our clean classrooms, and tour our play facilities between 9:00 AM and 4:00 PM.
+              Come see the magic for yourself! Meet our loving educators, explore our clean classrooms and tour our play facilities between 8:30 AM and 7:30 PM.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <button
@@ -1204,13 +1210,13 @@ function AboutPage() {
     { icon: '📚', title: 'Holistic Growth', color: '#ffd8e4', desc: 'Social, emotional, cognitive, and physical development are equally nurtured in our curriculum.' },
   ]
   return (
-    <div className="min-h-screen relative overflow-hidden about-page-bg">
+    <div className="min-h-screen relative overflow-hidden rainbow-page-bg">
       <div className="rainbow-bar h-1.5" />
-      <div className="max-w-6xl mx-auto px-4 pt-24 pb-14 sm:py-20 relative z-10">
+      <div className="max-w-6xl lg:max-w-7xl 2xl:max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-14 sm:py-20 relative z-10">
         <ScrollReveal className="text-center mb-10 sm:mb-14">
           <span className="text-5xl inline-block mb-1 sm:mb-2 animate-bounce-soft">🌻</span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#5a3a8a] mb-3 sm:mb-4" style={{ fontFamily: 'Nunito, sans-serif' }}>About Abhyudaya Preschool</h2>
-          <p className="text-sm sm:text-base md:text-lg text-[#6a5a7a] max-w-xl mx-auto font-medium px-2 sm:px-0">Nurturing tiny hearts with love, structure, and wonder in SS Nagar, Perumanallur.</p>
+          <p className="text-sm sm:text-base md:text-lg text-[#6a5a7a] max-w-xl mx-auto font-medium px-2 sm:px-0">Nurturing tiny hearts with love, structure and wonder in SS Nagar, Perumanallur.</p>
         </ScrollReveal>
 
         {/* Our Vision & Our Mission */}
@@ -1230,10 +1236,10 @@ function AboutPage() {
                 </div>
               </div>
               <p className="text-[#5a4a6a] text-sm sm:text-base leading-relaxed mb-4">
-                At <strong>Abhyudaya Preschool</strong>, our vision is to ignite a lifelong love for learning in every child by creating a joyful and nurturing environment where curiosity blossoms and confidence shines. We envision a place where little minds are encouraged to explore, imagine, question, and dream freely.
+                At <strong>Abhyudaya Preschool</strong>, our vision is to ignite a lifelong love for learning in every child by creating a joyful and nurturing environment where curiosity blossoms and confidence shines. We envision a place where little minds are encouraged to explore, imagine, question and dream freely.
               </p>
               <p className="text-[#5a4a6a] text-sm sm:text-base leading-relaxed">
-                We strive to shape children who are not only academically prepared but also emotionally strong, socially responsible, and rooted in values of kindness and respect. By laying a strong foundation during these precious early years, we aim to empower each child to grow into a happy, independent, and compassionate individual ready to embrace the future with courage and enthusiasm.
+                We strive to shape children who are not only academically prepared but also emotionally strong, socially responsible and rooted in values of kindness and respect. By laying a strong foundation during these precious early years, we aim to empower each child to grow into a happy, independent and compassionate individual ready to embrace the future with courage and enthusiasm.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 pt-6 mt-6 border-t border-[#e2d5f2]">
@@ -1260,10 +1266,10 @@ function AboutPage() {
                 </div>
               </div>
               <p className="text-[#3a5a4a] text-sm sm:text-base leading-relaxed mb-4">
-                At <strong>Abhyudaya Preschool</strong>, our mission is to provide a safe, caring, and child-centered environment where every child feels happy and valued. We believe in learning through play, exploration, and meaningful hands-on experiences that support the holistic development of each child — socially, emotionally, physically, and cognitively.
+                At <strong>Abhyudaya Preschool</strong>, our mission is to provide a safe, caring and child-centered environment where every child feels happy and valued. We believe in learning through play, exploration, and meaningful hands-on experiences that support the holistic development of each child — socially, emotionally, physically and cognitively.
               </p>
               <p className="text-[#3a5a4a] text-sm sm:text-base leading-relaxed">
-                We strive to build confidence, strong communication skills, creativity, and curiosity while instilling values such as kindness, respect, sharing, and responsibility. By working closely with parents, we aim to nurture each child’s unique potential and lay a strong foundation for lifelong learning.
+                We strive to build confidence, strong communication skills, creativity and curiosity while instilling values such as kindness, respect, sharing and responsibility. By working closely with parents, we aim to nurture each child’s unique potential and lay a strong foundation for lifelong learning.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 pt-6 mt-6 border-t border-[#c5e6d6]">
@@ -1276,48 +1282,18 @@ function AboutPage() {
           </div>
         </ScrollReveal>
 
-        {/* A Sacred Beginning — Prospectus Pooja */}
-        <ScrollReveal delay={120} className="mb-14">
-          <div className="rounded-3xl p-6 sm:p-9 shadow-sm border border-[#fdd8b5] bg-gradient-to-br from-[#fffdfa] via-[#fff8ee] to-[#fbf5ff] relative overflow-hidden">
-            <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-[#ffd6b0] to-[#fff0b0] flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-sm border-2 border-white">
-                🪔
-              </div>
-              <div className="flex-1 text-center md:text-left">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f4a26b]/15 text-[#b45309] text-xs font-black uppercase tracking-wider mb-2">
-                  <span>✨</span> A Sacred Milestone
-                </div>
-                <h3 className="text-2xl sm:text-3xl font-black text-[#4a2a60] mb-3" style={{ fontFamily: 'Nunito, sans-serif' }}>
-                  A Sacred Beginning — Prospectus Pooja
-                </h3>
-                <p className="text-[#5a4a6a] text-sm sm:text-base leading-relaxed mb-3">
-                  Every meaningful journey begins with blessings, gratitude, and hope. As <strong>Abhyudaya Preschool</strong> steps into a new space, we begin this beautiful chapter with a <strong>Prospectus Pooja</strong>, seeking divine grace for our vision of nurturing young minds.
-                </p>
-                <p className="text-[#5a4a6a] text-sm sm:text-base leading-relaxed mb-4">
-                  May this space be filled with laughter, curiosity, creativity, and love, and may it become a second home where little learners blossom into confident individuals.
-                </p>
-                <div className="inline-block px-5 py-2.5 rounded-2xl bg-white/85 border border-[#f5d0b0] shadow-2xs">
-                  <span className="font-bold text-sm sm:text-base text-[#5a3a8a]" style={{ fontFamily: 'Nunito, sans-serif' }}>
-                    ✨ A new place. A new beginning. Endless possibilities for little learners.
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </ScrollReveal>
 
         {/* Story */}
-        <ScrollReveal delay={140} className="bg-white rounded-3xl p-8 mb-14 shadow-sm border border-[#f0e8f8] flex flex-col md:flex-row gap-8 items-center">
+        <ScrollReveal delay={120} className="bg-white rounded-3xl p-8 mb-14 shadow-sm border border-[#f0e8f8] flex flex-col md:flex-row gap-8 items-center">
           <div className="flex-shrink-0 animate-float">
             <TeddyMascot size={140} />
           </div>
           <div>
             <h3 className="text-2xl font-black text-[#5a3a8a] mb-3" style={{ fontFamily: 'Nunito, sans-serif' }}>Our Story</h3>
             <p className="text-[#5a4a6a] leading-relaxed mb-3">
-              Abhyudaya Preschool was founded with a heartfelt vision — to create a nurturing space where every child feels safe, loved, and inspired to learn. Located in SS Nagar, Avinashi Road, Perumanallur, we welcome children from Daycare age all the way through UKG and beyond.
-            </p>
-            <p className="text-[#5a4a6a] leading-relaxed">
-              Led by Bharani S, our passionate team is dedicated to holistic early childhood development. From joyful play to structured learning, every moment at Abhyudaya is crafted to help your little one bloom. We're not just a school — we're family.
+              Abhyudaya Preschool was established in 2019 with a vision to provide quality early childhood education in a safe, nurturing and stimulating environment. Managed by Abhyudaya Educational Trust , the institution is committed to laying a strong foundation for young learners through holistic development, joyful learning and value-based education. Abhyudaya Preschool believes that every child is unique and deserves individual care, encouragement and opportunities to explore their potential. Our child-centred approach combines play-based learning, experiential activities, creativity, communication and social development to make every learning experience meaningful.
+              With a dedicated team of caring educators, we strive to create an environment where children develop confidence, independence, curiosity and a lifelong love for learning. Beyond preschool education, we also provide daycare and afterschool facilities to support the needs of children and families.
+              At Abhyudaya, we don't just prepare children for school; we prepare them for life.
             </p>
           </div>
         </ScrollReveal>
@@ -1332,7 +1308,7 @@ function AboutPage() {
               Infrastructure, Play &amp; Learning Materials
             </h3>
             <p className="text-sm sm:text-base text-[#6a5a7a] max-w-2xl mx-auto mt-2 leading-relaxed">
-              At <strong>Abhyudaya Preschool</strong>, we believe that the environment plays a vital role in a child’s learning journey. Our thoughtfully designed infrastructure creates a safe, joyful, and stimulating space where children can explore, play, and learn naturally.
+              At <strong>Abhyudaya Preschool</strong>, we believe that the environment plays a vital role in a child’s learning journey. Our thoughtfully designed infrastructure creates a safe, joyful and stimulating space where children can explore, play and learn naturally.
             </p>
           </div>
 
@@ -1365,7 +1341,7 @@ function AboutPage() {
                 </div>
               </div>
               <div className="p-3.5 rounded-2xl bg-[#b8f0d8]/35 border border-[#9ee4c3] text-xs text-[#165b3b] font-medium leading-relaxed">
-                💡 <strong>Developmental Growth:</strong> These materials help develop fine motor skills, problem-solving abilities, creativity, and independent thinking.
+                💡 <strong>Developmental Growth:</strong> These materials help develop fine motor skills, problem-solving abilities, creativity and independent thinking.
               </div>
             </div>
 
@@ -1382,7 +1358,7 @@ function AboutPage() {
                   </div>
                 </div>
                 <p className="text-xs sm:text-sm text-[#5a4a6a] leading-relaxed mb-4">
-                  Children enjoy hands-on experiences through activities like <strong>music, dance, art, storytelling, cooking, gardening, and free play</strong>, which help them discover their interests and talents.
+                  Children enjoy hands-on experiences through activities like <strong>music, dance, art, storytelling, cooking, gardening and free play</strong>, which help them discover their interests and talents.
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-6">
                   {explorationActivities.map(({ name, icon, color }) => (
@@ -1406,7 +1382,7 @@ function AboutPage() {
                     A Space That Feels Like Home
                   </div>
                   <div className="text-xs text-[#5a4a6a] mt-0.5 leading-relaxed">
-                    Our goal is to create a nurturing environment where children feel safe, happy, and excited to learn every day.
+                    Our goal is to create a nurturing environment where children feel safe, happy and excited to learn every day.
                   </div>
                 </div>
               </div>
@@ -1430,20 +1406,21 @@ function AboutPage() {
 
         {/* Team */}
         <ScrollReveal delay={250} className="text-center">
-          <h3 className="text-3xl font-black text-[#5a3a8a] mb-8" style={{ fontFamily: 'Nunito, sans-serif' }}>Meet Our Educators 💗</h3>
-          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-5">
-            {[
-              { name: 'Mrs. Bharani', role: 'Founder & Principal', color: '#e0d0f8' },
-              { name: 'Ms. Sreelakshmi', role: 'Head Teacher', color: '#b8f0d8' },
-              { name: 'Ms. Ananya', role: 'Activity Coordinator', color: '#ffd6b0' },
-              { name: 'Mr. Azhagan', role: 'Music & Movement', color: '#b8d8f8' },
-            ].map(({ name, role, color }) => (
-              <div key={name} className="card-hover bg-white rounded-2xl p-5 shadow-sm border border-[#f0e8f8]">
-                <div className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl font-black text-white shadow-sm" style={{ backgroundColor: color }}>
-                  {name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+          <h3 className="text-3xl font-black text-[#5a3a8a] mb-8" style={{ fontFamily: 'Nunito, sans-serif' }}>Abhyudaya Educational trust Board members 💗</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto items-stretch">
+            {([
+              { name: 'Mrs. R.Suseela Rangasamy', color: '#e0d0f8' },
+              { name: 'Mrs P.Malarkodi Muralikrishnan ', color: '#b8f0d8' },
+              { name: 'Mrs S.Bharani Baskar', color: '#ffd6b0' },
+            ] as { name: string; role?: string; color: string }[]).map(({ name, role, color }) => (
+              <div key={name} className="card-hover bg-white rounded-2xl p-6 shadow-sm border border-[#f0e8f8] flex flex-col justify-between h-full">
+                <div>
+                  <div className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl font-black text-white shadow-sm" style={{ backgroundColor: color }}>
+                    {name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                  </div>
+                  <div className="font-black text-[#3d2a50] text-sm" style={{ fontFamily: 'Nunito, sans-serif' }}>{name}</div>
+                  {role ? <div className="text-xs text-[#9a88a8] mt-0.5">{role}</div> : null}
                 </div>
-                <div className="font-black text-[#3d2a50] text-sm" style={{ fontFamily: 'Nunito, sans-serif' }}>{name}</div>
-                <div className="text-xs text-[#9a88a8] mt-0.5">{role}</div>
               </div>
             ))}
           </div>
@@ -1501,67 +1478,85 @@ function GalleryPage() {
       window.removeEventListener('preschool-content-updated', handleUpdate)
       if (channel && supabase) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ;(supabase as any).removeChannel(channel)
+        ; (supabase as any).removeChannel(channel)
       }
     }
   }, [])
 
-  // Dynamic categories with preset fallback
+  // Standard categories with dynamic extras from gallery records
   const categories = useMemo(() => {
-    const cats = new Set<string>(['All', 'Classroom', 'Activities', 'Outdoor', 'Mealtime', 'Meditation'])
+    const defaultCats = ['All', 'Activities', 'Classroom', 'Outdoor Play', 'Events & Celebrations', 'Campus', 'Daycare']
+    const cats = new Set<string>(defaultCats)
     gallery.forEach(item => {
-      if (item.category) cats.add(item.category)
+      if (item.category?.trim()) cats.add(item.category.trim())
     })
     return Array.from(cats)
   }, [gallery])
+
+  // Category counts
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { All: gallery.length }
+    categories.forEach(cat => {
+      if (cat !== 'All') {
+        counts[cat] = gallery.filter(item => (item.category || '').toLowerCase() === cat.toLowerCase()).length
+      }
+    })
+    return counts
+  }, [gallery, categories])
 
   // Map to lightbox-compatible structure
   const items: GalleryItemData[] = useMemo(() => {
     const bgColors = ['#ffd6b0', '#e0d0f8', '#b8f0d8', '#b8d8f8', '#ffd8e4']
     return gallery.map((item, idx) => ({
+      id: item.id,
       cat: item.category || 'Classroom',
-      emoji: item.emoji || '📸',
+      emoji: item.emoji || CATEGORY_EMOJIS[item.category || 'Classroom'] || '📸',
       label: item.title,
       bg: bgColors[idx % bgColors.length],
       localImg: item.image_url || `/gallery1.jpg${ASSET_V}`,
-      desc: item.description,
+      desc: item.description || undefined,
     }))
   }, [gallery])
 
-  const filtered = active === 'All' ? items : items.filter(i => i.cat === active)
+  const filtered = useMemo(() => {
+    if (active === 'All') return items
+    return items.filter(i => (i.cat || '').toLowerCase() === active.toLowerCase())
+  }, [items, active])
 
   return (
-    <div
-      className="min-h-screen relative overflow-hidden"
-      style={{
-        backgroundImage: `linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(253, 250, 246, 0.65) 40%, rgba(240, 248, 244, 0.8) 100%), url('/rainbow.jpg${ASSET_V}')`,
-        backgroundSize: 'contain',
-        backgroundPosition: 'center top',
-        backgroundRepeat: 'no-repeat',
-      }}
-    >
+    <div className="min-h-screen relative overflow-hidden rainbow-page-bg">
       <div className="rainbow-bar h-1.5" />
-      <div className="max-w-6xl mx-auto px-4 py-20 relative z-10">
+      <div className="max-w-6xl lg:max-w-7xl 2xl:max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10">
         <ScrollReveal className="text-center mb-12">
-          <span className="text-5xl">📸</span>
-          <h2 className="text-4xl sm:text-5xl font-black text-[#5a3a8a] mt-3 mb-3" style={{ fontFamily: 'Nunito, sans-serif' }}>Gallery &amp; Activities</h2>
-          <p className="text-[#6a5a7a]">Peek into the everyday magic, laughter, and learning at Abhyudaya Preschool</p>
+          <span className="text-5xl inline-block mb-1 sm:mb-2 animate-bounce-soft">📸</span>
+          <h2 className="text-4xl sm:text-5xl font-black text-[#5a3a8a] mt-3 mb-3" style={{ fontFamily: 'Nunito, sans-serif' }}>
+            Campus &amp; Activity Gallery
+          </h2>
+          <p className="text-[#6a5a7a] max-w-2xl mx-auto text-sm sm:text-base">
+            Peek into the everyday magic, playful learning, outdoor joy, and classroom discoveries at Abhyudaya Preschool
+          </p>
         </ScrollReveal>
 
-        {/* Filter tabs */}
-        <ScrollReveal delay={100} className="flex flex-wrap gap-2 justify-center mb-10">
+        {/* Category filter tabs */}
+        <ScrollReveal delay={100} className="flex flex-wrap gap-2.5 justify-center mb-10">
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setActive(cat)}
-              className={`px-5 py-2 rounded-full font-bold text-sm transition-all duration-200 cursor-pointer ${
-                active === cat
-                  ? 'bg-[#5a3a8a] text-white shadow-md'
-                  : 'bg-white text-[#5a3a8a] border border-[#e0d0f8] hover:bg-[#f0e8fc]'
-              }`}
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full font-bold text-xs sm:text-sm transition-all duration-200 cursor-pointer flex items-center gap-1.5 shadow-xs ${active === cat
+                ? 'bg-[#5a3a8a] text-white shadow-md scale-102'
+                : 'bg-white text-[#5a3a8a] border border-[#e0d0f8] hover:bg-[#f0e8fc]'
+                }`}
               style={{ fontFamily: 'Nunito, sans-serif' }}
             >
-              {cat}
+              <span>{CATEGORY_EMOJIS[cat] || (cat === 'All' ? '✨' : '📸')}</span>
+              <span>{cat}</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-black ${active === cat ? 'bg-white/25 text-white' : 'bg-[#f0e8f8] text-[#5a3a8a]'
+                  }`}
+              >
+                {categoryCounts[cat] ?? 0}
+              </span>
             </button>
           ))}
         </ScrollReveal>
@@ -1576,48 +1571,70 @@ function GalleryPage() {
           <div className="py-16 text-center bg-white/70 backdrop-blur-sm rounded-3xl border border-[#e0d0f8] max-w-md mx-auto p-8 shadow-sm">
             <span className="text-4xl mb-3 block">🖼️</span>
             <h4 className="font-black text-[#3d2a50] text-base mb-1" style={{ fontFamily: 'Nunito, sans-serif' }}>
-              No photos found
+              No photos found in {active}
             </h4>
-            <p className="text-xs text-[#8a7a9a]">No photos available under "{active}". Choose another category above.</p>
+            <p className="text-xs text-[#8a7a9a]">No photos currently available under "{active}". Choose another category or visit the admin portal to upload photos.</p>
           </div>
         ) : (
-          <ScrollReveal delay={150} className="grid sm:grid-cols-2 md:grid-cols-3 gap-5">
+          <ScrollReveal delay={150} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map(item => (
               <div
-                key={item.label + item.localImg}
+                key={item.id || item.label + item.localImg}
                 onClick={() => setSelectedPhoto(item)}
-                className="group relative rounded-3xl overflow-hidden shadow-md border border-white/80 bg-white cursor-pointer card-hover"
+                className="group relative rounded-3xl overflow-hidden shadow-md border border-white/80 bg-white cursor-pointer card-hover flex flex-col"
               >
                 {/* Image */}
-                <div className="relative h-60 overflow-hidden" style={{ backgroundColor: item.bg }}>
+                <div className="relative h-64 sm:h-72 overflow-hidden bg-[#faf5ff]" style={{ backgroundColor: item.bg }}>
                   <img
                     src={item.localImg}
                     alt={item.label}
                     onError={e => {
-                      ;(e.currentTarget as HTMLImageElement).src = `/gallery1.jpg${ASSET_V}`
+                      ; (e.currentTarget as HTMLImageElement).src = `/gallery1.jpg${ASSET_V}`
                     }}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   {/* Overlay on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#2d1a40]/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-4">
-                    <div>
-                      <div className="text-white font-black text-base" style={{ fontFamily: 'Nunito, sans-serif' }}>{item.label}</div>
-                      <div className="text-[#e0d0f8] text-xs mt-0.5">{item.cat}</div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#2d1a40]/85 via-black/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-5">
+                    <div className="text-white max-w-[80%]">
+                      <div className="font-black text-base drop-shadow-md leading-snug" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                        {item.label}
+                      </div>
+                      {item.desc && (
+                        <p className="text-[#f0e8fc] text-xs line-clamp-2 mt-1 drop-shadow-xs">
+                          {item.desc}
+                        </p>
+                      )}
                     </div>
-                    <span className="px-3 py-1 bg-white/30 backdrop-blur-md rounded-full text-white text-xs font-bold">🔍 View</span>
+                    <span className="px-3 py-1.5 bg-white/30 backdrop-blur-md rounded-full text-white text-xs font-bold shrink-0">
+                      🔍 View
+                    </span>
                   </div>
                   {/* Category badge */}
-                  <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold text-white shadow-md" style={{ background: 'rgba(90,58,138,0.75)', backdropFilter: 'blur(6px)' }}>
-                    {item.emoji} {item.cat}
+                  <div
+                    className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold text-white shadow-md flex items-center gap-1.5"
+                    style={{ background: 'rgba(90,58,138,0.85)', backdropFilter: 'blur(8px)' }}
+                  >
+                    <span>{item.emoji}</span>
+                    <span>{item.cat}</span>
                   </div>
                 </div>
                 {/* Card footer */}
-                <div className="p-4 flex items-center justify-between bg-white border-t border-[#f5f0fc]">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{item.emoji}</span>
-                    <div>
-                      <div className="font-black text-[#3d2a50] text-sm" style={{ fontFamily: 'Nunito, sans-serif' }}>{item.label}</div>
-                      <div className="text-xs text-[#9a88a8] mt-0.5">Abhyudaya Preschool</div>
+                <div className="p-4 flex flex-col justify-between flex-1 bg-white border-t border-[#f5f0fc]">
+                  <div className="flex items-start gap-2.5">
+                    <span className="text-xl shrink-0 mt-0.5">{item.emoji}</span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-black text-[#3d2a50] text-sm leading-snug line-clamp-1" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                        {item.label}
+                      </h3>
+                      {item.desc ? (
+                        <p className="text-xs text-[#7a6a8a] line-clamp-2 mt-1 leading-relaxed">
+                          {item.desc}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-[#9a88a8] mt-1">
+                          Abhyudaya Preschool • {item.cat}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1638,7 +1655,7 @@ function GalleryPage() {
         <ScrollReveal delay={200} className="mt-16 bg-white rounded-3xl p-8 shadow-sm border border-[#f0e8f8] text-center">
           <div className="text-4xl mb-3">📱</div>
           <h3 className="text-2xl font-black text-[#5a3a8a] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>Watch Us on Instagram</h3>
-          <p className="text-[#6a5a7a] mb-6 text-sm">See reels of our kids dancing, painting, and celebrating every day!</p>
+          <p className="text-[#6a5a7a] mb-6 text-sm">See reels of our kids dancing, painting and celebrating every day!</p>
           <div className="flex flex-wrap gap-4 justify-center">
             <a
               href="https://www.instagram.com/abhyudayapreschool?igsh=MTFpYmpwejg3OXZxdQ=="
@@ -1649,13 +1666,19 @@ function GalleryPage() {
             >
               📷 Follow @abhyudayapreschool
             </a>
+            <a
+              href="https://www.facebook.com/p/Abhyudaya-Play-school-100064070978854/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-full text-white font-black text-sm shadow-md"
+              style={{ background: '#1877F2' }}
+            >
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+              Follow @abhyudayapreschool
+            </a>
           </div>
           <div className="mt-6 grid grid-cols-3 gap-3 max-w-sm mx-auto">
-            {['#ffd6b0', '#e0d0f8', '#b8f0d8', '#b8d8f8', '#fff0b0', '#ffd8e4'].map((c, i) => (
-              <div key={i} className="aspect-square rounded-xl flex items-center justify-center text-2xl" style={{ backgroundColor: c }}>
-                {['🎨', '💃', '🌿', '📖', '🎂', '🎵'][i]}
-              </div>
-            ))}
+
           </div>
         </ScrollReveal>
       </div>
@@ -1665,18 +1688,29 @@ function GalleryPage() {
 
 // ── Programs Page ─────────────────────────────────────────────────────────────
 
-const TIMETABLE = [
-  { time: '9:00 AM', activity: 'Warm Welcome, Morning Circle & Prayers', icon: '🌅' },
-  { time: '9:30 AM', activity: 'Rhymes, Phonics & Daily Language Fun', icon: '🎵' },
-  { time: '10:15 AM', activity: 'Healthy Snack & Fresh Fruit Break', icon: '🥪' },
-  { time: '10:45 AM', activity: 'Activity Block (Drawing, Craft & Sensory Play)', icon: '🎨' },
-  { time: '11:45 AM', activity: 'Outdoor Play, Sandpit & Gross Motor Games', icon: '🌿' },
-  { time: '12:30 PM', activity: 'Storytelling, Puppet Show & Show-and-Tell', icon: '📖' },
-  { time: '1:00 PM', activity: 'Nutritious & Delicious Lunch Time', icon: '🍱' },
-  { time: '1:30 PM', activity: 'Rest & Quiet Time / Refreshing Nap', icon: '😴' },
-  { time: '2:45 PM', activity: 'Puzzles, Building Blocks & Creative STEM Play', icon: '🧱' },
-  { time: '3:30 PM', activity: 'Evening Snack & Joyful Music / Dance Time', icon: '💃' },
-  { time: '4:00 PM', activity: 'Review of the Day, Bag Pack & Parent Pickup', icon: '🎒' },
+const PLAYGROUP_TIMETABLE = [
+  { time: '9:00 AM', activity: 'Welcoming & Prayer', icon: '🙏' },
+  { time: '9:30 AM', activity: 'Circle Time', icon: '⭕' },
+  { time: '10:00 AM', activity: 'Snacks Break', icon: '🍎' },
+  { time: '10:30 AM', activity: 'Oral Learning', icon: '🗣️' },
+  { time: '11:00 AM', activity: 'Rhymes / Story Time', icon: '📖' },
+  { time: '11:30 AM', activity: 'Activity / Play Time', icon: '🎨' },
+  { time: '12:00 PM', activity: 'Dispersal', icon: '🎒' },
+]
+
+const KINDERGARTEN_TIMETABLE = [
+  { time: '9:00 AM', activity: 'Welcoming & Prayer', icon: '🙏' },
+  { time: '9:30 AM', activity: 'Circle Time', icon: '⭕' },
+  { time: '10:00 AM', activity: 'Recap Time', icon: '🔄' },
+  { time: '10:30 AM', activity: 'Snacks Break / Recess', icon: '🥪' },
+  { time: '11:00 AM', activity: 'Conceptual Learning', icon: '💡' },
+  { time: '11:30 AM', activity: 'Hands-on Activities / Rhymes & Story Time', icon: '🧩' },
+  { time: '12:00 PM', activity: 'Writing Practice', icon: '✏️' },
+  { time: '12:30 PM', activity: 'Lunch Break', icon: '🍱' },
+  { time: '1:15 PM', activity: 'Nap Time', icon: '😴' },
+  { time: '2:00 PM', activity: 'Sensorial Play', icon: '🎨' },
+  { time: '2:30 PM', activity: 'Learning Recap', icon: '⭐' },
+  { time: '3:00 PM', activity: 'Dispersal', icon: '🎒' },
 ]
 
 const ACTIVITIES = [
@@ -1742,7 +1776,7 @@ function ProgramsPage({
       window.removeEventListener('preschool-content-updated', handleUpdate)
       if (channel && supabase) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ;(supabase as any).removeChannel(channel)
+        ; (supabase as any).removeChannel(channel)
       }
     }
   }, [])
@@ -1755,14 +1789,27 @@ function ProgramsPage({
   }
   const fallbackColors = ['#ffd6b0', '#e0d0f8', '#b8f0d8', '#b8d8f8', '#fff0b0', '#ffd8e4']
 
-  const filteredPrograms = selectedCategory === 'all'
+  const getProgramRank = (p: Program): number => {
+    const title = (p.title || '').toLowerCase()
+    const id = (p.id || '').toLowerCase()
+    if (title.includes('playgroup') || id.includes('playgroup')) return 1
+    if (title.includes('nursery') || id.includes('nursery')) return 2
+    if (title.includes('lkg') || id.includes('kindergarten')) return 3
+    if (title.includes('after') || id.includes('afterschool')) return 4
+    if (title.includes('weekend') || id.includes('weekend')) return 5
+    if (title.includes('daycare') || id.includes('daycare')) return 6
+    return 99
+  }
+
+  const filteredPrograms = (selectedCategory === 'all'
     ? programs
     : programs.filter(p => p.category === selectedCategory)
+  ).slice().sort((a, b) => getProgramRank(a) - getProgramRank(b))
 
   return (
-    <div className="min-h-screen relative overflow-hidden about-page-bg">
+    <div className="min-h-screen relative overflow-hidden rainbow-page-bg">
       <div className="rainbow-bar h-1.5" />
-      <div className="max-w-6xl mx-auto px-4 pt-24 pb-14 sm:py-20 relative z-10">
+      <div className="max-w-6xl lg:max-w-7xl 2xl:max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-14 sm:py-20 relative z-10">
         <ScrollReveal className="text-center mb-10 sm:mb-12">
           <span className="text-5xl inline-block mb-1 sm:mb-2 animate-bounce-soft">🎒</span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#5a3a8a] mb-3" style={{ fontFamily: 'Nunito, sans-serif' }}>Our Programs &amp; Curriculum</h2>
@@ -1780,10 +1827,10 @@ function ProgramsPage({
                 Blending the Best Practices for Balanced Growth
               </h3>
               <p className="text-sm sm:text-base text-[#5a4a6a] leading-relaxed mb-3">
-                At <strong>Abhyudaya Preschool</strong>, our curriculum is thoughtfully designed by blending the best practices of <strong>Montessori philosophy</strong>, <strong>Waldorf approach</strong>, and <strong>internationally recognized early childhood education standards</strong>.
+                At <strong>Abhyudaya Preschool</strong>, our curriculum is thoughtfully designed by blending the best practices of <strong>Montessori philosophy</strong>, <strong>Waldorf approach</strong> and <strong>internationally recognized early childhood education standards</strong>.
               </p>
               <p className="text-sm sm:text-base text-[#7a5a8a] font-medium">
-                We believe that every child learns differently. Our integrated approach ensures balanced development — nurturing the head, heart, and hands.
+                We believe that every child learns differently. Our integrated approach ensures balanced development — nurturing the head, heart and hands.
               </p>
             </div>
 
@@ -1791,18 +1838,18 @@ function ProgramsPage({
             <div className="grid sm:grid-cols-3 gap-4 mb-8">
               <div className="p-5 rounded-2xl bg-[#e0d0f8]/30 border border-[#e0d0f8] text-center card-hover">
                 <div className="text-3xl mb-2">🧠</div>
-                <div className="font-black text-sm text-[#3d2a50]" style={{ fontFamily: 'Nunito, sans-serif' }}>Nurturing the Head</div>
-                <div className="text-xs text-[#6a5a7a] mt-1">Inquiry, critical thinking, curiosity, and joyful cognitive exploration.</div>
+                <div className="font-black text-sm text-[#3d2a50]" style={{ fontFamily: 'Nunito, sans-serif' }}>Nurturing the Mind</div>
+                <div className="text-xs text-[#6a5a7a] mt-1">Inquiry, critical thinking, curiosity and joyful cognitive exploration.</div>
               </div>
               <div className="p-5 rounded-2xl bg-[#ffd6b0]/30 border border-[#ffd6b0] text-center card-hover">
                 <div className="text-3xl mb-2">❤️</div>
                 <div className="font-black text-sm text-[#3d2a50]" style={{ fontFamily: 'Nunito, sans-serif' }}>Nurturing the Heart</div>
-                <div className="text-xs text-[#6a5a7a] mt-1">Emotional security, values of kindness, empathy, sharing, and respect.</div>
+                <div className="text-xs text-[#6a5a7a] mt-1">Emotional security, values of kindness, empathy, sharing and respect.</div>
               </div>
               <div className="p-5 rounded-2xl bg-[#b8f0d8]/30 border border-[#b8f0d8] text-center card-hover">
                 <div className="text-3xl mb-2">✋</div>
                 <div className="font-black text-sm text-[#3d2a50]" style={{ fontFamily: 'Nunito, sans-serif' }}>Nurturing the Hands</div>
-                <div className="text-xs text-[#6a5a7a] mt-1">Sensory play, fine motor skills, creative arts, and practical life activities.</div>
+                <div className="text-xs text-[#6a5a7a] mt-1">Sensory play, fine motor skills, creative arts and practical life activities.</div>
               </div>
             </div>
 
@@ -1882,11 +1929,10 @@ function ProgramsPage({
               <button
                 key={tab.id}
                 onClick={() => setSelectedCategory(tab.id)}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                  selectedCategory === tab.id
-                    ? 'bg-[#5a3a8a] text-white shadow-sm'
-                    : 'text-[#6a5a7a] hover:bg-[#f5f0fc] hover:text-[#5a3a8a]'
-                }`}
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${selectedCategory === tab.id
+                  ? 'bg-[#5a3a8a] text-white shadow-sm'
+                  : 'text-[#6a5a7a] hover:bg-[#f5f0fc] hover:text-[#5a3a8a]'
+                  }`}
                 style={{ fontFamily: 'Nunito, sans-serif' }}
               >
                 {tab.label}
@@ -1910,7 +1956,7 @@ function ProgramsPage({
             <p className="text-xs text-[#8a7a9a]">No active programs currently match this filter. Select "All Programs" above.</p>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 mb-16">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16 items-stretch">
             {filteredPrograms.map((prog, idx) => {
               const cardBg = categoryColors[prog.category] || fallbackColors[idx % fallbackColors.length]
               const features = Array.isArray(prog.features) ? prog.features : []
@@ -1918,37 +1964,40 @@ function ProgramsPage({
               return (
                 <div
                   key={prog.id || prog.title}
-                  className="card-hover rounded-3xl overflow-hidden shadow-sm border border-white bg-white flex flex-col justify-between"
+                  className="card-hover rounded-3xl overflow-hidden shadow-sm border border-[#e0d0f8]/60 bg-white flex flex-col justify-between h-full"
                 >
-                  <div>
-                    <div className="p-6" style={{ backgroundColor: cardBg + 'cc' }}>
+                  <div className="flex flex-col flex-1">
+                    <div className="p-6 text-center sm:text-left" style={{ backgroundColor: cardBg + 'cc' }}>
                       <div className="text-5xl mb-3">{prog.icon || '🎒'}</div>
                       <h3 className="text-2xl font-black text-[#3d2a50] mb-1" style={{ fontFamily: 'Nunito, sans-serif' }}>
                         {prog.title}
                       </h3>
                       <div className="text-sm font-bold text-[#5a4a6a]">{prog.age_group}</div>
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-2 bg-white/70 backdrop-blur-sm rounded-full text-xs font-bold text-[#5a3a7a]">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-2.5 bg-white/80 backdrop-blur-sm rounded-full text-xs font-bold text-[#5a3a7a] shadow-2xs">
                         ⏰ {prog.timings || 'Mon–Sat | 9:00 AM – 4:00 PM'}
                       </div>
                     </div>
-                    <div className="p-6">
-                      <p className="text-sm text-[#5a4a6a] leading-relaxed mb-4">{prog.description}</p>
-                      {features.length > 0 && (
-                        <ul className="space-y-2 mb-6">
-                          {features.map((f, fIdx) => (
-                            <li key={fIdx} className="flex items-center gap-2 text-sm text-[#5a4a6a]">
-                              <span className="text-[#10b981] font-black">✓</span> {f}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                    <div className="p-6 flex-1 flex flex-col justify-between">
+                      <div>
+                        <p className="text-sm text-[#5a4a6a] leading-relaxed mb-4 min-h-[44px]">{prog.description}</p>
+                        {features.length > 0 && (
+                          <ul className="space-y-2 mb-6">
+                            {features.map((f, fIdx) => (
+                              <li key={fIdx} className="flex items-center gap-2 text-sm text-[#5a4a6a]">
+                                <span className="text-[#10b981] font-black shrink-0">✓</span>
+                                <span>{f}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="p-6 pt-0">
+                  <div className="p-6 pt-0 mt-auto">
                     <button
                       onClick={onEnrollNow || (() => setActive('Contact'))}
-                      className="btn-primary w-full py-2.5 px-4 bg-[#f4effc] text-[#5a3a8a] hover:bg-[#5a3a8a] hover:text-white rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-[#e0d0f8]"
+                      className="btn-primary w-full py-3 px-4 bg-[#f4effc] text-[#5a3a8a] hover:bg-[#5a3a8a] hover:text-white rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-[#e0d0f8]"
                     >
                       <span>Enquire for {prog.title} →</span>
                     </button>
@@ -1964,7 +2013,7 @@ function ProgramsPage({
           <div className="text-4xl mb-3">💼👩‍💼</div>
           <h3 className="text-2xl font-black text-[#3d2a50] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>We Support Working Parents</h3>
           <p className="text-[#5a4a6a] max-w-xl mx-auto text-sm leading-relaxed">
-            Our Daycare, Afterschool, and Weekend Care programs are designed with working parents in mind. Your child is safe, happy, and learning with us — giving you the peace of mind you deserve.
+            Our Daycare, Afterschool and Weekend Care programs are designed with working parents in mind. Your child is safe, happy and learning with us — giving you the peace of mind you deserve.
           </p>
           <button
             onClick={onEnrollNow || (() => setActive('Contact'))}
@@ -1989,22 +2038,80 @@ function ProgramsPage({
 
         {/* Timetable */}
         <ScrollReveal delay={250}>
-          <div className="text-center mb-6">
-            <h3 className="text-3xl font-black text-[#5a3a8a]" style={{ fontFamily: 'Nunito, sans-serif' }}>Sample Daily Timetable 📅</h3>
-            <p className="text-sm text-[#7a6a8a] mt-1">Structured joy from morning prayer to afternoon review (9:00 AM – 4:00 PM)</p>
+          <div className="text-center mb-8">
+            <span className="text-4xl inline-block mb-1 sm:mb-2 animate-bounce-soft" aria-hidden="true">⏰</span>
+            <h3 className="text-3xl sm:text-4xl font-black text-[#5a3a8a]" style={{ fontFamily: 'Nunito, sans-serif' }}>Timetable</h3>
+            <p className="text-sm sm:text-base text-[#7a6a8a] mt-1.5 max-w-xl mx-auto">Thoughtfully planned daily routines balancing prayers, joyful learning, play, and rest.</p>
           </div>
-          <div className="bg-white rounded-3xl shadow-sm border border-[#f0e8f8] overflow-hidden">
-            {TIMETABLE.map(({ time, activity, icon }, i) => (
-              <div
-                key={time}
-                className="flex items-center gap-4 px-6 py-4 border-b border-[#f5f0fc] last:border-0 hover:bg-[#faf6fd] transition-colors"
-                style={{ backgroundColor: i % 2 === 0 ? 'white' : '#fdfaff' }}
-              >
-                <span className="text-2xl">{icon}</span>
-                <span className="w-28 text-sm font-black text-[#9a78b0] shrink-0" style={{ fontFamily: 'Nunito, sans-serif' }}>{time}</span>
-                <span className="text-sm text-[#5a4a6a]">{activity}</span>
+
+          <div className="grid md:grid-cols-2 gap-8 items-start">
+            {/* Playgroup Section */}
+            <div className="bg-white rounded-3xl shadow-sm border border-[#e0d0f8] overflow-hidden flex flex-col">
+              <div className="p-6 bg-gradient-to-r from-[#f5edfd] via-[#ede3fa] to-[#fbf7ff] border-b border-[#e0d0f8]">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full bg-[#5a3a8a]/10 text-[#5a3a8a] inline-flex items-center gap-1 mb-2">
+                      <span>🎪</span> Early Foundations
+                    </span>
+                    <h4 className="text-2xl sm:text-3xl font-black text-[#3d2a50]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                      Playgroup
+                    </h4>
+                    <p className="text-xs sm:text-sm font-semibold text-[#7a5a90] mt-0.5">Daycare / Playgroup • 9:00 AM – 12:00 PM</p>
+                  </div>
+                  <span className="text-4xl sm:text-5xl shrink-0">🎈</span>
+                </div>
               </div>
-            ))}
+
+              <div className="divide-y divide-[#f5f0fc]">
+                {PLAYGROUP_TIMETABLE.map(({ time, activity, icon }, i) => (
+                  <div
+                    key={time + activity}
+                    className="flex items-center gap-4 px-5 sm:px-6 py-3.5 hover:bg-[#faf6fd] transition-colors"
+                    style={{ backgroundColor: i % 2 === 0 ? '#ffffff' : '#fdfaff' }}
+                  >
+                    <span className="text-xl sm:text-2xl shrink-0">{icon}</span>
+                    <span className="w-24 sm:w-28 text-xs sm:text-sm font-black text-[#9a78b0] shrink-0" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                      {time}
+                    </span>
+                    <span className="text-xs sm:text-sm font-medium text-[#4a3a5a]">{activity}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Kindergarten (KG) Section */}
+            <div className="bg-white rounded-3xl shadow-sm border border-[#b8d8f8] overflow-hidden flex flex-col">
+              <div className="p-6 bg-gradient-to-r from-[#eaf4fd] via-[#def0fc] to-[#f5faff] border-b border-[#b8d8f8]">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full bg-[#2563eb]/10 text-[#1d4ed8] inline-flex items-center gap-1 mb-2">
+                      <span>📚</span> School Readiness
+                    </span>
+                    <h4 className="text-2xl sm:text-3xl font-black text-[#1e3a5a]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                      Kindergarten (KG)
+                    </h4>
+                    <p className="text-xs sm:text-sm font-semibold text-[#3b6b95] mt-0.5">Nursery, LKG &amp; UKG • 9:00 AM – 3:00 PM</p>
+                  </div>
+                  <span className="text-4xl sm:text-5xl shrink-0">⭐</span>
+                </div>
+              </div>
+
+              <div className="divide-y divide-[#f0f6fc]">
+                {KINDERGARTEN_TIMETABLE.map(({ time, activity, icon }, i) => (
+                  <div
+                    key={time + activity}
+                    className="flex items-center gap-4 px-5 sm:px-6 py-3.5 hover:bg-[#f5f9fd] transition-colors"
+                    style={{ backgroundColor: i % 2 === 0 ? '#ffffff' : '#f9fcff' }}
+                  >
+                    <span className="text-xl sm:text-2xl shrink-0">{icon}</span>
+                    <span className="w-24 sm:w-28 text-xs sm:text-sm font-black text-[#5a88b5] shrink-0" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                      {time}
+                    </span>
+                    <span className="text-xs sm:text-sm font-medium text-[#2d4052]">{activity}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </ScrollReveal>
       </div>
@@ -2055,6 +2162,15 @@ function ContactPage() {
       setSubmitted(true)
       setForm({ name: '', childName: '', childAge: 'Playgroup (2-3 yrs)', phone: '', message: '' })
       setTimeout(() => setSubmitted(false), 8000)
+      // Send email notification to school (non-blocking — enquiry is already saved)
+      sendEnquiryEmail({
+        parent_name: form.name,
+        phone: form.phone,
+        child_name: form.childName || undefined,
+        child_age: form.childAge || undefined,
+        message: form.message || undefined,
+        enquiry_type: 'admission',
+      }).catch(() => { }) // silently ignore email failures since enquiry is saved
     } else {
       setSubmitError(result.error ?? 'Submission failed. Please try again or call us directly.')
     }
@@ -2063,12 +2179,12 @@ function ContactPage() {
   function handleDirectWhatsApp(e: React.FormEvent) {
     e.preventDefault()
     const msg = `Hello Abhyudaya Preschool! 👋
-I would like to enquire about admissions:
-• Parent Name: ${form.name || 'Parent'}
-• Child's Name: ${form.childName || 'Not specified'}
-• Program / Age: ${form.childAge}
-• Contact Phone: ${form.phone || 'Not specified'}
-• Questions/Note: ${form.message || 'Please share admission details and fee structure.'}`
+                      I would like to enquire about admissions:
+                      • Parent Name: ${form.name || 'Parent'}
+                      • Child's Name: ${form.childName || 'Not specified'}
+                      • Program / Age: ${form.childAge}
+                      • Contact Phone: ${form.phone || 'Not specified'}
+                      • Questions/Note: ${form.message || 'Please share admission details and fee structure.'}`
     const url = `https://wa.me/919788713822?text=${encodeURIComponent(msg)}`
     window.open(url, '_blank')
   }
@@ -2090,14 +2206,21 @@ I would like to enquire about admissions:
       setVisitSubmitted(true)
       setVisitForm({ name: '', phone: '', date: '', slot: '10:00 AM – 11:00 AM', notes: '' })
       setTimeout(() => setVisitSubmitted(false), 8000)
+      // Send email notification to school (non-blocking)
+      sendEnquiryEmail({
+        parent_name: visitForm.name,
+        phone: visitForm.phone,
+        message: `Campus Visit Request\n• Date: ${visitForm.date || 'Flexible'}\n• Slot: ${visitForm.slot}\n• Notes: ${visitForm.notes || 'Looking forward to touring!'}`,
+        enquiry_type: 'campus_visit',
+      }).catch(() => { })
       // Also open WhatsApp for immediate confirmation
       const msg = `Hello Abhyudaya Preschool! 🏡
-I have submitted a campus visit request:
-• Parent Name: ${visitForm.name}
-• Phone: ${visitForm.phone}
-• Preferred Date: ${visitForm.date || 'Flexible'}
-• Preferred Time: ${visitForm.slot}
-• Notes: ${visitForm.notes || 'Looking forward to touring the classrooms!'}`
+                      I have submitted a campus visit request:
+                      • Parent Name: ${visitForm.name}
+                      • Phone: ${visitForm.phone}
+                      • Preferred Date: ${visitForm.date || 'Flexible'}
+                      • Preferred Time: ${visitForm.slot}
+                      • Notes: ${visitForm.notes || 'Looking forward to touring the classrooms!'}`
       const url = `https://wa.me/919788713822?text=${encodeURIComponent(msg)}`
       window.open(url, '_blank')
     } else {
@@ -2106,15 +2229,7 @@ I have submitted a campus visit request:
   }
 
   return (
-    <div
-      className="min-h-screen relative overflow-hidden"
-      style={{
-        backgroundImage: `linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(253, 250, 246, 0.65) 40%, rgba(240, 248, 244, 0.8) 100%), url('/rainbow.jpg${ASSET_V}')`,
-        backgroundSize: 'contain',
-        backgroundPosition: 'center top',
-        backgroundRepeat: 'no-repeat',
-      }}
-    >
+    <div className="min-h-screen relative overflow-hidden rainbow-page-bg">
       <div className="rainbow-bar h-2" />
 
       {/* Floating background elements */}
@@ -2125,21 +2240,21 @@ I have submitted a campus visit request:
       <Star color="#f5d86b" size={20} style={{ position: 'absolute', top: 180, left: '18%' }} />
       <Star color="#c8b0e8" size={16} style={{ position: 'absolute', top: 260, right: '22%' }} />
 
-      <div className="max-w-6xl mx-auto px-4 pt-24 pb-20 relative z-10">
+      <div className="max-w-6xl lg:max-w-7xl 2xl:max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20 relative z-10">
         {/* Header */}
         <ScrollReveal direction="down">
           <div className="text-center max-w-3xl mx-auto mb-12">
             <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full text-xs sm:text-sm font-bold text-[#7a5a90] mb-4 shadow-sm border border-[#e0d0f8]">
               <span>📍</span> SS Nagar, Avinashi Road, Perumanallur
             </div>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-[#5a3a8a] mb-4" style={{ fontFamily: 'Nunito, sans-serif' }}>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-[#5a3a8a] mb-4" style={{ fontFamily: 'Nunito, sans-serif' }}>
               Get in Touch With Us 💬
-            </h1>
+            </h2>
             <p className="text-base sm:text-lg text-[#6a5a7a] leading-relaxed mb-4">
               We would love to welcome you and your child to Abhyudaya Preschool. Whether you have questions about admissions, want to chat on WhatsApp, or wish to schedule a warm campus tour — we are here for you!
             </p>
             <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#ffd6b0] to-[#b8f0d8] rounded-full text-xs sm:text-sm font-black text-[#3d2a50] shadow-sm">
-              <span>⏰</span> School &amp; Daycare Timings: <strong>9:00 AM – 4:00 PM</strong> (Mon – Sat)
+              <span>⏰</span> School &amp; Daycare Timings: <strong>8:30 AM – 7:30 PM</strong> (Mon – Sat)
             </div>
           </div>
         </ScrollReveal>
@@ -2161,7 +2276,7 @@ I have submitted a campus visit request:
               href="tel:+919788713822"
               className="btn-primary flex items-center gap-2 px-6 py-3.5 sm:py-4 bg-[#5a3a8a] text-white rounded-full font-black text-sm sm:text-base shadow-lg hover:bg-[#482c70] transition-all"
             >
-              <span>📞</span> Call: 97887 13822
+              <span>📞</span> Call: +91 97887 13822
             </a>
             <a
               href="tel:04222233822"
@@ -2170,19 +2285,29 @@ I have submitted a campus visit request:
               <span>☎️</span> Landline: 0422 2233822
             </a>
             <a
-              href="mailto:abhyudayapreschool@gmail.com"
+              href="mailto:daycare@abhyudaya-school.com"
               className="btn-primary flex items-center gap-2 px-6 py-3.5 sm:py-4 text-white rounded-full font-black text-sm sm:text-base shadow-lg hover:opacity-95 transition-all"
               style={{ background: 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)' }}
             >
               <span>📧</span> Email Us
             </a>
+            <a
+              href="https://www.facebook.com/p/Abhyudaya-Play-school-100064070978854/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary flex items-center gap-2 px-6 py-3.5 sm:py-4 text-white rounded-full font-black text-sm sm:text-base shadow-lg hover:opacity-95 transition-all"
+              style={{ background: '#1877F2' }}
+            >
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+              <span>Facebook</span>
+            </a>
           </div>
         </ScrollReveal>
 
-        {/* 4 Feature Info Cards */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-14">
+        {/* 3 Contact Info Cards - Centered */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-14 max-w-5xl mx-auto items-stretch">
           {/* Card 1 */}
-          <ScrollReveal direction="up" delay={100}>
+          <ScrollReveal direction="up" delay={100} className="h-full">
             <div className="card-hover h-full bg-white rounded-3xl p-6 shadow-sm border border-[#f0e8f8] flex flex-col justify-between" style={{ background: 'linear-gradient(180deg, #ffffff 0%, #fcf7ff 100%)' }}>
               <div>
                 <div className="w-12 h-12 rounded-2xl bg-[#e0d0f8] flex items-center justify-center text-2xl mb-4">
@@ -2190,13 +2315,19 @@ I have submitted a campus visit request:
                 </div>
                 <h2 className="text-lg font-black text-[#3d2a50] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>Phone &amp; Contact</h2>
                 <div className="space-y-1.5 text-sm text-[#5a4a6a]">
+                  <h2 className="text-lg font-black text-[#3d2a50] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>Abhyudayareschool</h2>
+                  <div className="space-y-1.5 text-sm text-[#5a4a6a]"></div>
                   <div>
                     <span className="font-bold text-[#5a3a8a]">Mobile:</span>{' '}
-                    <a href="tel:+919788713822" className="hover:underline font-bold text-[#2d1a40]">97887 13822</a>
+                    <a href="tel:+919788713822" className="hover:underline font-bold text-[#2d1a40]">+91 97887 13822</a>
                   </div>
                   <div>
                     <span className="font-bold text-[#5a3a8a]">Landline:</span>{' '}
                     <a href="tel:04222233822" className="hover:underline text-[#2d1a40]">0422 2233822</a>
+                  </div>
+                  <div>
+                    <span className="font-bold text-[#5a3a8a]">Email:</span>{' '}
+                    <a href="mailto:daycare@abhyudaya-school.com" className="hover:underline text-[#2d1a40] break-all">daycare@abhyudaya-school.com</a>
                   </div>
                   <div className="text-xs text-[#8a7a9a] mt-2">Feel free to call or text anytime.</div>
                 </div>
@@ -2205,7 +2336,7 @@ I have submitted a campus visit request:
           </ScrollReveal>
 
           {/* Card 2 */}
-          <ScrollReveal direction="up" delay={150}>
+          <ScrollReveal direction="up" delay={150} className="h-full">
             <div className="card-hover h-full bg-white rounded-3xl p-6 shadow-sm border border-[#f0e8f8] flex flex-col justify-between" style={{ background: 'linear-gradient(180deg, #ffffff 0%, #f0faf5 100%)' }}>
               <div>
                 <div className="w-12 h-12 rounded-2xl bg-[#b8f0d8] flex items-center justify-center text-2xl mb-4">
@@ -2213,21 +2344,21 @@ I have submitted a campus visit request:
                 </div>
                 <h2 className="text-lg font-black text-[#3d2a50] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>School Timings</h2>
                 <div className="space-y-1.5 text-sm text-[#5a4a6a]">
-                  <div className="font-black text-xl text-[#1a6a45]">9:00 AM – 4:00 PM</div>
+                  <div className="font-black text-xl text-[#1a6a45]">8:30 AM – 7:30 PM</div>
                   <div className="text-xs font-semibold text-[#6a8a7a]">Monday to Saturday</div>
                   <div className="text-xs text-[#8a9a8a] mt-2">
-                    Drop-off starts at 9:00 AM. Flexible pickup and campus visit tours from 9:30 AM to 3:30 PM.
+                    Drop-off starts at 8:30 AM. Flexible pickup and campus visit tours from 9:30 AM to 3:30 PM.
                   </div>
                 </div>
               </div>
               <div className="mt-4 py-2 px-3 bg-[#b8f0d8]/40 text-[#1a6a45] rounded-xl font-bold text-xs text-center">
-                Active Session: 9 AM to 4 PM
+                Active Session: 8.30 AM to 7.30 PM
               </div>
             </div>
           </ScrollReveal>
 
           {/* Card 3 */}
-          <ScrollReveal direction="up" delay={200}>
+          <ScrollReveal direction="up" delay={200} className="h-full">
             <div className="card-hover h-full bg-white rounded-3xl p-6 shadow-sm border border-[#f0e8f8] flex flex-col justify-between" style={{ background: 'linear-gradient(180deg, #ffffff 0%, #fff7ef 100%)' }}>
               <div>
                 <div className="w-12 h-12 rounded-2xl bg-[#ffd6b0] flex items-center justify-center text-2xl mb-4">
@@ -2248,32 +2379,6 @@ I have submitted a campus visit request:
                 className="mt-4 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-[#ffd6b0]/50 text-[#8a4a20] hover:bg-[#ffd6b0]/70 rounded-xl font-bold text-xs transition-all"
               >
                 🗺️ Open in Google Maps
-              </a>
-            </div>
-          </ScrollReveal>
-
-          {/* Card 4 */}
-          <ScrollReveal direction="up" delay={250}>
-            <div className="card-hover h-full bg-white rounded-3xl p-6 shadow-sm border border-[#f0e8f8] flex flex-col justify-between" style={{ background: 'linear-gradient(180deg, #ffffff 0%, #eff7ff 100%)' }}>
-              <div>
-                <div className="w-12 h-12 rounded-2xl bg-[#b8d8f8] flex items-center justify-center text-2xl mb-4">
-                  👤
-                </div>
-                <h2 className="text-lg font-black text-[#3d2a50] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>Key Contact</h2>
-                <div className="text-base font-black text-[#2d4070]">Bharani S</div>
-                <div className="text-xs font-semibold text-[#6080a0] mb-2">Director &amp; Administrator</div>
-                <div className="text-xs text-[#5a4a6a] break-all">
-                  <a href="mailto:abhyudayapreschool@gmail.com" className="hover:underline text-[#3a60a0]">abhyudayapreschool@gmail.com</a>
-                </div>
-                <div className="text-xs text-[#8a9aa8] mt-2">Personally guiding every parent through our warm admissions process.</div>
-              </div>
-              <a
-                href="https://www.instagram.com/abhyudayapreschool?igsh=MTFpYmpwejg3OXZxdQ=="
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-[#b8d8f8]/40 text-[#2a5090] hover:bg-[#b8d8f8]/60 rounded-xl font-bold text-xs transition-all"
-              >
-                📷 @abhyudayapreschool
               </a>
             </div>
           </ScrollReveal>
@@ -2304,8 +2409,8 @@ I have submitted a campus visit request:
                   <div className="mb-6 p-4 bg-[#b8f0d8] rounded-2xl text-[#1a6a45] font-bold text-sm flex items-center gap-3 border border-[#7ed8a0]" role="alert" aria-live="polite">
                     <span className="text-2xl">🎉</span>
                     <div>
-                      <div>Enquiry saved! We will call or WhatsApp you shortly.</div>
-                      <div className="text-xs font-normal text-[#2a5a40]">You can also message Bharani S directly at 97887 13822.</div>
+                      <div>Your enquiry has been sent successfully! We will call or WhatsApp you shortly.</div>
+                      <div className="text-xs font-normal text-[#2a5a40]">You can also message directly at 97887 13822.</div>
                     </div>
                   </div>
                 )}
@@ -2348,7 +2453,7 @@ I have submitted a campus visit request:
                         onChange={e => setForm({ ...form, childAge: e.target.value })}
                         className="w-full px-4 py-3 rounded-xl border border-[#e0d0f8] focus:outline-none focus:ring-2 focus:ring-[#b48de8] text-sm bg-[#fdfaff] transition-all"
                       >
-                        <option value="Daycare (2+ years)">🍼 Daycare (2+ years, 9 AM – 4 PM)</option>
+                        <option value="Daycare (1.5+ years)">🍼 Daycare (1.5+ years, 8.30 AM – 7.30 PM)</option>
                         <option value="Playgroup (2-3 yrs)">🎪 Playgroup (Ages 2 – 3 yrs)</option>
                         <option value="Nursery (3-4 yrs)">🌱 Nursery (Ages 3 – 4 yrs)</option>
                         <option value="LKG & UKG (4-6 yrs)">📚 LKG &amp; UKG (Ages 4 – 6 yrs)</option>
@@ -2403,7 +2508,7 @@ I have submitted a campus visit request:
                     </button>
                   </div>
                   <p className="text-center text-xs text-[#8a7a9a] pt-1">
-                    Or call Bharani S directly at <a href="tel:+919788713822" className="text-[#5a3a8a] font-bold underline">97887 13822</a>.
+                    Or call directly at <a href="tel:+919788713822" className="text-[#5a3a8a] font-bold underline">+91 97887 13822</a> or email <a href="mailto:daycare@abhyudaya-school.com" className="text-[#5a3a8a] font-bold underline break-all">daycare@abhyudaya-school.com</a>.
                   </p>
                 </form>
               </div>
@@ -2427,7 +2532,7 @@ I have submitted a campus visit request:
 
                 {visitSubmitted && (
                   <div className="mb-4 p-3.5 bg-[#b8f0d8] rounded-xl text-[#1a6a45] font-bold text-xs flex items-center gap-2 border border-[#7ed8a0]" role="alert" aria-live="polite">
-                    <span>✅</span> Visit saved! Opening WhatsApp to confirm your slot with Bharani S.
+                    <span>✅</span> Visit saved! Opening WhatsApp to confirm your slot.
                   </div>
                 )}
 
@@ -2554,7 +2659,7 @@ I have submitted a campus visit request:
                     ⏰ What are the school &amp; daycare timings?
                   </AccordionTrigger>
                   <AccordionContent className="text-sm text-[#6a5a7a] leading-relaxed pb-4">
-                    Our campus operates from <strong>9:00 AM to 4:00 PM</strong>, Monday through Saturday. We offer flexible sessions for Playgroup, Nursery, LKG, UKG, and full-day daycare with drop-offs starting at 9:00 AM.
+                    Our campus operates from <strong>8:30 AM to 7:30 PM</strong>, Monday through Saturday. We offer flexible sessions for Playgroup, Nursery, LKG, UKG and full-day daycare with drop-offs starting at 8:30 AM.
                   </AccordionContent>
                 </AccordionItem>
 
@@ -2563,7 +2668,7 @@ I have submitted a campus visit request:
                     💬 Can I contact directly via WhatsApp?
                   </AccordionTrigger>
                   <AccordionContent className="text-sm text-[#6a5a7a] leading-relaxed pb-4">
-                    Yes! Click any WhatsApp button on our website or text/call <a href="https://wa.me/919788713822" target="_blank" rel="noopener noreferrer" className="font-bold text-[#25D366] hover:underline">97887 13822</a>. Our WhatsApp is active <strong>24/7</strong> for enquiries, and Bharani S and our team respond promptly.
+                    Yes! Click any WhatsApp button on our website or text/call <a href="https://wa.me/919788713822" target="_blank" rel="noopener noreferrer" className="font-bold text-[#25D366] hover:underline">+91 97887 13822</a>. Our WhatsApp is active <strong>24/7</strong> for enquiries, our team respond promptly.
                   </AccordionContent>
                 </AccordionItem>
 
@@ -2572,7 +2677,7 @@ I have submitted a campus visit request:
                     🎒 What age groups are eligible?
                   </AccordionTrigger>
                   <AccordionContent className="text-sm text-[#6a5a7a] leading-relaxed pb-4">
-                    We accept children from <strong>2 years and above</strong> across Daycare, Playgroup, Nursery, LKG, and UKG, plus afterschool support and weekend care.
+                    We accept children from <strong>1.5 years and above</strong> across Daycare, Playgroup, Nursery, LKG and UKG, plus afterschool support and weekend care.
                   </AccordionContent>
                 </AccordionItem>
 
@@ -2581,7 +2686,7 @@ I have submitted a campus visit request:
                     🛡️ Can parents visit the school before joining?
                   </AccordionTrigger>
                   <AccordionContent className="text-sm text-[#6a5a7a] leading-relaxed pb-4">
-                    Absolutely! We warmly welcome parents to tour our clean, CCTV-monitored classrooms, see the play area, and meet our teachers between 9:30 AM and 3:30 PM. Use the form above to book your preferred visit slot!
+                    Absolutely! We warmly welcome parents to tour our clean, CCTV-monitored classrooms, see the play area and meet our teachers between 9:30 AM and 3:30 PM. Use the form above to book your preferred visit slot!
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
@@ -2605,8 +2710,8 @@ function Footer({
   onAdminClick?: () => void
 }) {
   return (
-    <footer className="bg-[#2d1a40] text-white pt-14 pb-24 sm:pb-14 px-4 border-t border-[#4a3060]">
-      <div className="max-w-6xl mx-auto">
+    <footer className="bg-[#2d1a40] text-white pt-14 pb-24 sm:pb-14 px-4 sm:px-6 lg:px-8 border-t border-[#4a3060]">
+      <div className="max-w-6xl lg:max-w-7xl 2xl:max-w-[1400px] mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-10">
           <div>
             <div className="flex items-center gap-3 mb-4">
@@ -2618,10 +2723,10 @@ function Footer({
               />
             </div>
             <p className="text-sm text-[#b0a0c0] leading-relaxed mb-4">
-              Nurturing little minds with love, play, and purpose in SS Nagar, Perumanallur.
+              Nurturing little minds with love, play  and purpose in SS Nagar, Perumanallur.
             </p>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#4a3060] text-xs font-bold text-[#e0d0f8]">
-              ⏰ Timings: 9:00 AM – 4:00 PM
+              ⏰ Timings: 8:30 AM – 7:30 PM
             </div>
           </div>
 
@@ -2635,22 +2740,13 @@ function Footer({
                   </button>
                 </li>
               ))}
-              <li className="pt-2 border-t border-[#4a3060]/70 mt-2">
-                <button
-                  onClick={onAdminClick || (() => setActive('Admin'))}
-                  className="hover:text-white text-[#d4c5ea] transition-colors flex items-center gap-1.5 cursor-pointer font-bold text-xs"
-                >
-                  <span>🔐</span>
-                  <span>Staff / Admin Portal</span>
-                </button>
-              </li>
             </ul>
           </div>
 
           <div>
             <h3 className="font-black mb-3 text-[#e0d0f8] text-base" style={{ fontFamily: 'Nunito, sans-serif' }}>Our Programs</h3>
             <ul className="space-y-2 text-sm text-[#b0a0c0]">
-              <li>🍼 Daycare (2+ years | 9 AM – 4 PM)</li>
+              <li>🍼 Daycare (1.5+ years | 8.30 AM – 7.30 PM)</li>
               <li>🎪 Playgroup</li>
               <li>🌱 Nursery</li>
               <li>📚 LKG &amp; UKG</li>
@@ -2664,7 +2760,7 @@ function Footer({
             <ul className="space-y-2 text-sm text-[#b0a0c0]">
               <li>
                 <a href="tel:+919788713822" className="hover:text-white flex items-center gap-2">
-                  <span>📞</span> 97887 13822
+                  <span>📞</span> +91 97887 13822
                 </a>
               </li>
               <li>
@@ -2673,8 +2769,8 @@ function Footer({
                 </a>
               </li>
               <li>
-                <a href="mailto:abhyudayapreschool@gmail.com" className="hover:text-white flex items-center gap-2 break-all">
-                  <span>📧</span> abhyudayapreschool@gmail.com
+                <a href="mailto:daycare@abhyudaya-school.com" className="hover:text-white flex items-center gap-2 break-all">
+                  <span>📧</span> daycare@abhyudaya-school.com
                 </a>
               </li>
               <li className="flex items-start gap-2">
@@ -2689,7 +2785,6 @@ function Footer({
                 </a>
               </li>
               <li className="flex items-center gap-2">
-                <span>👤</span> <strong>Bharani S</strong>
               </li>
             </ul>
           </div>
@@ -2698,7 +2793,7 @@ function Footer({
         <div className="border-t border-[#4a3060] pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-[#8a7a9a] pr-16 sm:pr-0">
           <span>© 2026 Abhyudaya Preschool. Made with 💗 for little ones.</span>
           <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-            <span>Hours: 9:00 AM – 4:00 PM</span>
+            <span>Hours: 8:30 AM – 7:30 PM</span>
             <span>•</span>
             <button
               onClick={onEnrollNow || (() => setActive('Contact'))}
@@ -2828,6 +2923,8 @@ export default function App() {
     if (active === 'Contact') {
       scrollToEnquiry()
     } else {
+
+
       navigate('Contact')
       // Wait for ContactPage to mount in DOM, then scroll directly to the enquiry form
       requestAnimationFrame(() => {
@@ -2863,6 +2960,7 @@ export default function App() {
           const isAdmin =
             user.app_metadata?.role === 'admin' ||
             [
+              'daycare@abhyudaya-school.com',
               'abhyudayapreschool@gmail.com',
               'jothisanjay659@gmail.com',
               'sreelakshmij67@gmail.com',

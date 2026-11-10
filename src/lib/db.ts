@@ -1,5 +1,6 @@
 import { supabase, isConfigured } from './supabase'
 export { isConfigured }
+import { createEnquiryApi, getPublicAnnouncementsApi } from './api'
 
 import type {
   EnquirySubmission,
@@ -66,19 +67,11 @@ function isRateLimited(): boolean {
   return false
 }
 
-// ── Enquiry submission ────────────────────────────────────────────────────────
+// ── Enquiry submission (Hybrid MERN: MongoDB Atlas Ingestion) ─────────────────
 
 export async function submitEnquiry(rawData: EnquirySubmission): Promise<SubmitResult> {
   const validationError = validateEnquiry(rawData)
   if (validationError) return { success: false, error: validationError }
-
-  if (!supabase) {
-    console.error('[Enquiry] Database client is not configured or Supabase keys are missing.')
-    return {
-      success: false,
-      error: 'We could not save your enquiry right now. Please call or WhatsApp us directly at 97887 13822.',
-    }
-  }
 
   if (isRateLimited()) {
     return {
@@ -88,8 +81,7 @@ export async function submitEnquiry(rawData: EnquirySubmission): Promise<SubmitR
   }
 
   // Construct validated and sanitized database payload
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const payload: Record<string, any> = {
+  const payload: EnquirySubmission = {
     parent_name: sanitizeText(rawData.parent_name),
     phone: sanitizeText(rawData.phone),
     enquiry_type: rawData.enquiry_type ?? 'admission',
@@ -117,25 +109,57 @@ export async function submitEnquiry(rawData: EnquirySubmission): Promise<SubmitR
   const preferredSlot = sanitizeText(rawData.preferred_slot)
   if (preferredSlot) payload.preferred_slot = preferredSlot
 
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.from('enquiries') as any).insert([payload])
+  // Primary Ingestion: Store in MongoDB Atlas via Express REST API
+  const apiRes = await createEnquiryApi(payload)
 
-    if (error) {
-      console.error('[Enquiry] Insert error:', (error as { message: string }).message, error)
-      return {
-        success: false,
-        error: 'We could not save your enquiry right now. Please call or WhatsApp us directly at 97887 13822.',
-      }
-    }
-
-    return { success: true }
-  } catch (err) {
-    console.error('[Enquiry] Unexpected error:', err)
+  if (!apiRes.success) {
+    console.error('[Enquiry] MongoDB API submission error:', apiRes.error)
     return {
       success: false,
-      error: 'We could not save your enquiry right now. Please call or WhatsApp us directly at 97887 13822.',
+      error: apiRes.error || 'We could not save your enquiry right now. Please call or WhatsApp us directly at +91 97887 13822.',
     }
+  }
+
+  return { success: true }
+}
+
+// ── Email notification for enquiries ──────────────────────────────────────────
+
+export async function sendEnquiryEmail(data: {
+  parent_name: string
+  phone: string
+  child_name?: string
+  child_age?: string
+  message?: string
+  enquiry_type?: string
+}): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) {
+    console.warn('[Email] Supabase not configured, skipping email notification.')
+    return { success: false, error: 'Email service not configured.' }
+  }
+
+  try {
+    const { data: result, error } = await supabase.functions.invoke('send-enquiry-email', {
+      body: {
+        parent_name: data.parent_name,
+        phone: data.phone,
+        child_name: data.child_name || undefined,
+        child_age: data.child_age || undefined,
+        message: data.message || undefined,
+        enquiry_type: data.enquiry_type || 'admission',
+      },
+    })
+
+    if (error) {
+      console.error('[Email] Edge function error:', error)
+      return { success: false, error: 'Email notification failed.' }
+    }
+
+    console.info('[Email] Notification sent successfully:', result)
+    return { success: true }
+  } catch (err) {
+    console.error('[Email] Unexpected error:', err)
+    return { success: false, error: 'Email notification failed.' }
   }
 }
 
@@ -163,27 +187,6 @@ export async function submitCampusVisit(rawData: CampusVisitSubmission): Promise
 // ── Read public data ──────────────────────────────────────────────────────────
 
 export const DEFAULT_PROGRAMS: Program[] = [
-  {
-    id: 'prog-daycare',
-    title: 'Daycare',
-    category: 'daycare',
-    age_group: '2+ years',
-    icon: '🍼',
-    color: '#ffd6b0',
-    timings: 'Mon–Sat | 9:00 AM – 4:00 PM',
-    description:
-      'A safe and loving environment for toddlers 2 years and above. Supervised care, play, rest, and meals with gentle, attentive teachers.',
-    features: [
-      'Safe & supervised care',
-      'Age-appropriate play',
-      'Nutritious meals & snacks',
-      'Rest & nap time',
-      'Warm, home-like atmosphere',
-    ],
-    published: true,
-    created_at: '2026-03-01T00:00:00Z',
-    updated_at: '2026-03-01T00:00:00Z',
-  },
   {
     id: 'prog-playgroup',
     title: 'Playgroup',
@@ -228,7 +231,7 @@ export const DEFAULT_PROGRAMS: Program[] = [
   },
   {
     id: 'prog-kindergarten',
-    title: 'LKG & UKG',
+    title: 'LKG',
     category: 'kindergarten',
     age_group: 'Ages 4 – 6 yrs',
     icon: '📚',
@@ -249,7 +252,7 @@ export const DEFAULT_PROGRAMS: Program[] = [
   },
   {
     id: 'prog-afterschool',
-    title: 'Afterschool Care',
+    title: 'After School',
     category: 'daycare',
     age_group: 'School-going kids',
     icon: '🎒',
@@ -284,6 +287,27 @@ export const DEFAULT_PROGRAMS: Program[] = [
       'Group games & storytelling',
       'Structured fun activities',
       'Flexible weekend timings',
+    ],
+    published: true,
+    created_at: '2026-03-01T00:00:00Z',
+    updated_at: '2026-03-01T00:00:00Z',
+  },
+  {
+    id: 'prog-daycare',
+    title: 'Daycare',
+    category: 'daycare',
+    age_group: '2+ years',
+    icon: '🍼',
+    color: '#ffd6b0',
+    timings: 'Mon–Sat | 9:00 AM – 4:00 PM',
+    description:
+      'A safe and loving environment for toddlers 2 years and above. Supervised care, play, rest, and meals with gentle, attentive teachers.',
+    features: [
+      'Safe & supervised care',
+      'Age-appropriate play',
+      'Nutritious meals & snacks',
+      'Rest & nap time',
+      'Warm, home-like atmosphere',
     ],
     published: true,
     created_at: '2026-03-01T00:00:00Z',
@@ -368,128 +392,358 @@ export async function fetchTestimonials(): Promise<TestimonialRecord[]> {
   }
 }
 
+export const GALLERY_CATEGORIES = [
+  'Activities',
+  'Classroom',
+  'Outdoor Play',
+  'Events & Celebrations',
+  'Campus',
+  'Daycare',
+] as const
+
+export type GalleryCategory = (typeof GALLERY_CATEGORIES)[number]
+
+export const CATEGORY_EMOJIS: Record<string, string> = {
+  'Activities': '🎨',
+  'Classroom': '🏫',
+  'Outdoor Play': '⚽',
+  'Events & Celebrations': '🎉',
+  'Campus': '🏡',
+  'Daycare': '🍼',
+}
+
+const LOCAL_GALLERY_STORAGE_KEY = 'abhyudaya_local_gallery_v2'
+
+export function getLocalGallery(): GalleryRecord[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const stored = localStorage.getItem(LOCAL_GALLERY_STORAGE_KEY)
+    if (!stored) return []
+    return JSON.parse(stored) as GalleryRecord[]
+  } catch {
+    return []
+  }
+}
+
+export function saveLocalGallery(items: GalleryRecord[]): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(LOCAL_GALLERY_STORAGE_KEY, JSON.stringify(items))
+  } catch (e) {
+    console.warn('[LocalStorage] Could not persist gallery items:', e)
+  }
+}
+
 export const DEFAULT_GALLERY: GalleryRecord[] = [
+  // Classroom
   {
     id: 'seed-gal-1',
-    title: 'Our Colourful Classroom',
+    title: 'Colourful & Child-Safe Classroom',
     category: 'Classroom',
     emoji: '🏫',
-    description: 'Child-safe learning spaces designed for joyful curiosity',
+    description: 'Child-safe learning spaces designed for joyful curiosity, bright daylight and ergonomic furniture',
     image_url: '/gallery1.jpg',
     published: true,
     created_at: '2026-03-01T00:00:00Z',
   },
   {
     id: 'seed-gal-2',
-    title: 'Fun Movement Activity',
-    category: 'Activities',
-    emoji: '💃',
-    description: 'Kids expressing rhythm and coordination through dance and music',
-    image_url: '/gallery2.jpg',
+    title: 'Montessori Materials & Puzzle Corner',
+    category: 'Classroom',
+    emoji: '🧩',
+    description: 'Hands-on sensory, counting and cognitive learning materials arranged at child height',
+    image_url: '/gallery4.jpg',
     published: true,
-    created_at: '2026-03-01T00:00:00Z',
+    created_at: '2026-03-01T01:00:00Z',
   },
   {
     id: 'seed-gal-3',
-    title: 'Balloon Day Celebration',
-    category: 'Outdoor',
-    emoji: '🎈',
-    description: 'Outdoor joyous festivities and laughter under open skies',
-    image_url: '/gallery3.jpg',
+    title: 'Children Learning Spaces & Activity Tables',
+    category: 'Classroom',
+    emoji: '📐',
+    description: 'Collaborative seating encouraging group exploration, creative discussion and fine motor practice',
+    image_url: '/gallery5.jpg',
     published: true,
-    created_at: '2026-03-01T00:00:00Z',
+    created_at: '2026-03-01T02:00:00Z',
   },
+  // Activities
   {
     id: 'seed-gal-4',
-    title: 'Morning Meditation',
-    category: 'Meditation',
-    emoji: '🧘',
-    description: 'Calm mindfulness and focus circle at the start of our day',
-    image_url: '/gallery4.jpg',
+    title: 'Fun Movement & Rhyme Activities',
+    category: 'Activities',
+    emoji: '💃',
+    description: 'Kids expressing rhythm, balance and coordination through lively dance, rhymes and music',
+    image_url: '/gallery2.jpg',
     published: true,
-    created_at: '2026-03-01T00:00:00Z',
+    created_at: '2026-03-01T03:00:00Z',
   },
   {
     id: 'seed-gal-5',
-    title: 'Snack Time Together',
-    category: 'Mealtime',
-    emoji: '🍱',
-    description: 'Healthy, nutritious snacks shared in a warm community circle',
+    title: 'Art, Craft & Sensory Expression',
+    category: 'Activities',
+    emoji: '🎨',
+    description: 'Colour mixing, finger painting, clay modelling and boundless artistic creativity',
     image_url: '/gallery5.jpg',
     published: true,
-    created_at: '2026-03-01T00:00:00Z',
+    created_at: '2026-03-01T04:00:00Z',
+  },
+  {
+    id: 'seed-gal-6',
+    title: 'Storytelling & Early Vocabulary Games',
+    category: 'Activities',
+    emoji: '📖',
+    description: 'Interactive puppet shows and captivating picture books building early vocabulary',
+    image_url: '/gallery1.jpg',
+    published: true,
+    created_at: '2026-03-01T05:00:00Z',
+  },
+  // Outdoor Play
+  {
+    id: 'seed-gal-7',
+    title: 'Joyful Open-Air Playground Games',
+    category: 'Outdoor Play',
+    emoji: '🎈',
+    description: 'Outdoor joyous festivities, tag games and active physical play under shaded open skies',
+    image_url: '/gallery3.jpg',
+    published: true,
+    created_at: '2026-03-01T06:00:00Z',
+  },
+  {
+    id: 'seed-gal-8',
+    title: 'Sandbox Exploration & Nature Play',
+    category: 'Outdoor Play',
+    emoji: '⚽',
+    description: 'Sensory gardening, tactile sand exploration and friendly outdoor teamwork',
+    image_url: '/gallery2.jpg',
+    published: true,
+    created_at: '2026-03-01T07:00:00Z',
+  },
+  // Events & Celebrations
+  {
+    id: 'seed-gal-9',
+    title: 'Festive Balloon Day & Colour Celebration',
+    category: 'Events & Celebrations',
+    emoji: '🎉',
+    description: 'Vibrant cultural celebrations with colourful decorations, music and parent smiles',
+    image_url: '/gallery3.jpg',
+    published: true,
+    created_at: '2026-03-01T08:00:00Z',
+  },
+  {
+    id: 'seed-gal-10',
+    title: 'Annual Day Kids Stage Performance',
+    category: 'Events & Celebrations',
+    emoji: '⭐',
+    description: 'Confident little stars performing dances, rhymes and skits in custom costumes',
+    image_url: '/gallery4.jpg',
+    published: true,
+    created_at: '2026-03-01T09:00:00Z',
+  },
+  // Campus
+  {
+    id: 'seed-gal-11',
+    title: 'Welcoming SS Nagar Green Campus',
+    category: 'Campus',
+    emoji: '🏡',
+    description: 'Safe, gated campus in SS Nagar Perumanallur with lush green surroundings and secure entry',
+    image_url: '/gallery1.jpg',
+    published: true,
+    created_at: '2026-03-01T10:00:00Z',
+  },
+  {
+    id: 'seed-gal-12',
+    title: 'Clean & Hygienic Play Environments',
+    category: 'Campus',
+    emoji: '✨',
+    description: 'Daily sanitised premises, filtered water stations and child-height safety fittings',
+    image_url: '/gallery5.jpg',
+    published: true,
+    created_at: '2026-03-01T11:00:00Z',
+  },
+  // Daycare
+  {
+    id: 'seed-gal-13',
+    title: 'Peaceful Nap Room & Toddler Rest Haven',
+    category: 'Daycare',
+    emoji: '🍼',
+    description: 'Soft bedding, calming ambient lighting and attentive caretakers for soothing sleep',
+    image_url: '/gallery4.jpg',
+    published: true,
+    created_at: '2026-03-01T12:00:00Z',
+  },
+  {
+    id: 'seed-gal-14',
+    title: 'Nutritious Snack & Sharing Circle',
+    category: 'Daycare',
+    emoji: '🍱',
+    description: 'Warm healthy meal times supervised with gentle manners, hygiene and joy',
+    image_url: '/gallery5.jpg',
+    published: true,
+    created_at: '2026-03-01T13:00:00Z',
   },
 ]
 
 export async function fetchGallery(): Promise<GalleryRecord[]> {
-  if (!supabase) return DEFAULT_GALLERY
+  const localItems = getLocalGallery()
+
+  if (!supabase) {
+    if (localItems.length > 0) {
+      const localIds = new Set(localItems.map(i => i.id))
+      return [...localItems, ...DEFAULT_GALLERY.filter(d => !localIds.has(d.id))]
+    }
+    return DEFAULT_GALLERY
+  }
+
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase.from('gallery') as any)
       .select('*')
       .eq('published', true)
       .order('created_at', { ascending: false })
-    if (error) {
-      console.error('[Gallery] Fetch error:', (error as { message: string }).message)
+
+    if (error || !data || data.length === 0) {
+      if (localItems.length > 0) {
+        const localIds = new Set(localItems.map(i => i.id))
+        return [...localItems, ...DEFAULT_GALLERY.filter(d => !localIds.has(d.id))]
+      }
       return DEFAULT_GALLERY
     }
-    return (data ?? []) as GalleryRecord[]
+
+    const remoteIds = new Set((data as GalleryRecord[]).map(d => d.id))
+    const uniqueLocal = localItems.filter(l => !remoteIds.has(l.id))
+    return [...uniqueLocal, ...(data as GalleryRecord[])]
   } catch (err) {
     console.error('[Gallery] Unexpected fetch error:', err)
+    if (localItems.length > 0) {
+      const localIds = new Set(localItems.map(i => i.id))
+      return [...localItems, ...DEFAULT_GALLERY.filter(d => !localIds.has(d.id))]
+    }
     return DEFAULT_GALLERY
   }
 }
 
 /**
+ * Convert a File object to a base64 / Data URL with client-side compression
+ * to ensure offline resilience and fast loads.
+ */
+export function fileToCompressedDataUrl(file: File, maxWidth = 1600, quality = 0.85): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = e => {
+      const result = e.target?.result as string
+      // If already small SVG or GIF or under 300KB, resolve directly
+      if (file.type === 'image/gif' || file.size < 300 * 1024) {
+        resolve(result)
+        return
+      }
+
+      const img = new Image()
+      img.onload = () => {
+        let width = img.width
+        let height = img.height
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width)
+          width = maxWidth
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          resolve(result)
+          return
+        }
+        ctx.drawImage(img, 0, 0, width, height)
+        const format = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+        resolve(canvas.toDataURL(format, quality))
+      }
+      img.onerror = () => resolve(result)
+      img.src = result
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+/**
  * Upload an image file to the Supabase Storage 'gallery' bucket.
- * Restricts to JPG, PNG, WebP up to 5MB.
+ * Falls back to client-side data URL if storage is offline or unconfigured.
  */
 export async function uploadGalleryImage(file: File): Promise<{ url: string; error?: string }> {
-  if (!supabase) {
-    return { url: '', error: 'Database is not connected. Please verify your Supabase configuration.' }
-  }
-
-  const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/jpg']
   if (!validTypes.includes(file.type)) {
     return { url: '', error: 'Invalid file format. Please select a JPG, PNG, or WebP image.' }
   }
 
-  const maxSize = 5 * 1024 * 1024 // 5 MB
+  const maxSize = 15 * 1024 * 1024 // 15 MB
   if (file.size > maxSize) {
-    return { url: '', error: 'Image size exceeds the 5MB limit. Please choose a smaller file.' }
+    return { url: '', error: 'Image size exceeds the 15MB limit. Please choose a smaller file.' }
   }
 
+  // If Supabase is available, try uploading to Storage bucket
+  if (supabase) {
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const safeBase = file.name
+        .replace(/\.[^/.]+$/, '')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .slice(0, 30)
+      const filePath = `photos/${Date.now()}_${Math.random().toString(36).substring(2, 7)}_${safeBase}.${ext}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('gallery')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        })
+
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from('gallery').getPublicUrl(filePath)
+        if (urlData?.publicUrl) {
+          return { url: urlData.publicUrl }
+        }
+      } else {
+        console.warn('[Supabase Storage] Storage bucket upload failed, using high-quality local fallback:', uploadError.message)
+      }
+    } catch (err) {
+      console.warn('[Supabase Storage] Exception uploading to storage, using fallback:', err)
+    }
+  }
+
+  // Seamless fallback to compressed Data URL
   try {
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-    const safeBase = file.name
-      .replace(/\.[^/.]+$/, '')
-      .replace(/[^a-zA-Z0-9_-]/g, '_')
-      .slice(0, 30)
-    const filePath = `photos/${Date.now()}_${safeBase}.${ext}`
-
-    const { error: uploadError } = await supabase.storage
-      .from('gallery')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-      })
-
-    if (uploadError) {
-      console.error('[Supabase Storage] Upload error:', uploadError)
-      return { url: '', error: uploadError.message }
-    }
-
-    const { data: urlData } = supabase.storage.from('gallery').getPublicUrl(filePath)
-    if (!urlData?.publicUrl) {
-      return { url: '', error: 'Could not obtain public URL for the uploaded photo.' }
-    }
-
-    return { url: urlData.publicUrl }
+    const dataUrl = await fileToCompressedDataUrl(file)
+    return { url: dataUrl }
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unexpected upload error'
-    console.error('[Supabase Storage] Unexpected error:', err)
+    const message = err instanceof Error ? err.message : 'Failed to read image file'
     return { url: '', error: message }
   }
+}
+
+/**
+ * Upload multiple images with optional progress reporting
+ */
+export async function uploadMultipleGalleryImages(
+  files: File[],
+  onProgress?: (completed: number, total: number) => void
+): Promise<{ urls: string[]; errors: string[] }> {
+  const urls: string[] = []
+  const errors: string[] = []
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i]
+    const res = await uploadGalleryImage(file)
+    if (res.url) {
+      urls.push(res.url)
+    } else {
+      errors.push(`${file.name}: ${res.error || 'Failed to upload'}`)
+    }
+    if (onProgress) {
+      onProgress(i + 1, files.length)
+    }
+  }
+
+  return { urls, errors }
 }
 
 export function getFormattedFutureDate(offsetDays: number): string {
@@ -504,7 +758,7 @@ export function getFormattedFutureDate(offsetDays: number): string {
 export const DEFAULT_ANNOUNCEMENTS: Announcement[] = [
   {
     id: 'seed-ann-1',
-    title: '🌟 Admissions Open 2026–2027',
+    title: '🌟 Admissions Open 2027–2028',
     content:
       'Admissions are now open for Daycare, Playgroup, Nursery, LKG, and UKG at our SS Nagar, Perumanallur campus. Visit us between 9:00 AM and 4:00 PM for campus tours.',
     published: true,
@@ -542,6 +796,17 @@ export const DEFAULT_EVENTS: PreschoolEvent[] = [
 ]
 
 export async function fetchAnnouncements(): Promise<Announcement[]> {
+  // 1. Primary Source: Fetch live announcements from MongoDB Atlas
+  try {
+    const apiRes = await getPublicAnnouncementsApi()
+    if (apiRes.success && Array.isArray(apiRes.data) && apiRes.data.length > 0) {
+      return apiRes.data
+    }
+  } catch (err) {
+    console.warn('[Announcements] MongoDB API query error:', err)
+  }
+
+  // 2. Secondary / Historical Source: Fallback to Supabase so historical announcements remain visible
   if (!supabase) return DEFAULT_ANNOUNCEMENTS
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -550,7 +815,7 @@ export async function fetchAnnouncements(): Promise<Announcement[]> {
       .eq('published', true)
       .order('created_at', { ascending: false })
     if (error) {
-      console.error('[Announcements] Fetch error:', (error as { message: string }).message)
+      console.error('[Announcements] Supabase fetch error:', (error as { message: string }).message)
       return DEFAULT_ANNOUNCEMENTS
     }
     return (data ?? []) as Announcement[]

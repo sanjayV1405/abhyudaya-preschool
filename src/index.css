@@ -531,19 +531,27 @@ h1, h2, h3, h4, h5 {
   }
 }
 
-/* About Page Responsive Rainbow Background */
-.about-page-bg {
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(253, 250, 246, 0.65) 40%, rgba(240, 248, 244, 0.8) 100%), url('/rainbow.jpg?v=2');
-  background-size: contain;
-  background-position: center top;
+/* Unified Rainbow Page Background - Brighter, Vibrant & Consistent */
+.about-page-bg,
+.rainbow-page-bg {
+  background-image: 
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(253, 250, 246, 0.38) 35%, rgba(253, 250, 246, 0.85) 68%, #fdfaf6 100%),
+    radial-gradient(ellipse 90% 45% at 50% 0%, rgba(255, 220, 236, 0.35) 0%, rgba(215, 240, 255, 0.28) 45%, transparent 75%),
+    url('/rainbow.jpg?v=4');
+  background-size: 100% 100%, 100% 550px, contain;
+  background-position: center top, center top, center top;
   background-repeat: no-repeat;
 }
 
 @media (max-width: 767px) {
-  .about-page-bg {
-    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(253, 250, 246, 0.48) 35%, rgba(253, 250, 246, 0.9) 70%, #fdfaf6 100%), url('/rainbow.jpg?v=2');
-    background-size: auto 410px;
-    background-position: 56% top;
+  .about-page-bg,
+  .rainbow-page-bg {
+    background-image: 
+      linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(253, 250, 246, 0.35) 35%, rgba(253, 250, 246, 0.88) 70%, #fdfaf6 100%),
+      radial-gradient(ellipse 95% 45% at 50% 0%, rgba(255, 220, 236, 0.3) 0%, rgba(215, 240, 255, 0.25) 45%, transparent 75%),
+      url('/rainbow.jpg?v=4');
+    background-size: auto 420px, 100% 320px, auto 420px;
+    background-position: 56% top, center top, 56% top;
     background-repeat: no-repeat;
   }
 }

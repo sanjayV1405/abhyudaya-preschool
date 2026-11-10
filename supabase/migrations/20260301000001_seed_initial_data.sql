@@ -152,7 +152,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO public.announcements (title, content, published)
 VALUES
 (
-    '🌟 Admissions Open 2026–2027',
+    '🌟 Admissions Open 2027–2028',
     'Admissions are now open for Daycare, Playgroup, Nursery, LKG, and UKG at our SS Nagar, Perumanallur campus. Visit us between 9:00 AM and 4:00 PM for campus tours.',
     true
 ),

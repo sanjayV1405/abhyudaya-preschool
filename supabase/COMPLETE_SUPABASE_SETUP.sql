@@ -10,7 +10,7 @@
 --    - "anon" can ONLY SELECT published records from public content tables.
 -- 3. Hardened Administrator Authorization:
 --    - Authenticated users must have app_metadata->role = 'admin'
---      OR match verified administrator emails (abhyudayapreschool@gmail.com / admin@abhyudayapreschool.com).
+--      OR match verified administrator emails (daycare@abhyudaya-school.com / abhyudayapreschool@gmail.com / admin@abhyudayapreschool.com).
 --    - Ordinary authenticated users CANNOT read or modify parent enquiries.
 -- 4. Safe & Unapproved Seed Protection:
 --    - Starter testimonials default to published = false until school review.
@@ -192,6 +192,7 @@ AS $$
     AND (
       coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') = 'admin'
       OR lower(auth.jwt() ->> 'email') IN (
+        'daycare@abhyudaya-school.com',
         'abhyudayapreschool@gmail.com',
         'jothisanjay659@gmail.com',
         'sreelakshmij67@gmail.com',
@@ -410,7 +411,7 @@ INSERT INTO public.announcements (title, content, published)
 SELECT v.title, v.content, v.published
 FROM (
   VALUES
-    ('🌟 Admissions Open 2026–2027', 'Admissions are now open for Daycare, Playgroup, Nursery, LKG, and UKG at our SS Nagar, Perumanallur campus. Visit us between 9:00 AM and 4:00 PM for campus tours.', true),
+    ('🌟 Admissions Open 2027–2028', 'Admissions are now open for Daycare, Playgroup, Nursery, LKG, and UKG at our SS Nagar, Perumanallur campus. Visit us between 9:00 AM and 4:00 PM for campus tours.', true),
     ('🎒 Extended Daycare Timings Support Working Parents', 'Full-day care and afterschool supervision available with nutritious meals, rest sessions, and guided learning from 9:00 AM to 4:00 PM.', true)
 ) AS v(title, content, published)
 WHERE NOT EXISTS (

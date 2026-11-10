@@ -1,6 +1,24 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase, isConfigured } from '../lib/supabase'
-import { uploadGalleryImage } from '../lib/db'
+import {
+  getEnquiriesApi,
+  updateEnquiryStatusApi,
+  deleteEnquiryApi,
+  getAdminAnnouncementsApi,
+  createAnnouncementApi,
+  updateAnnouncementApi,
+  toggleAnnouncementPublishedApi,
+  deleteAnnouncementApi,
+} from '../lib/api'
+import {
+  uploadGalleryImage,
+  uploadMultipleGalleryImages,
+  getLocalGallery,
+  saveLocalGallery,
+  DEFAULT_GALLERY,
+  GALLERY_CATEGORIES,
+  CATEGORY_EMOJIS,
+} from '../lib/db'
 import type {
   Enquiry,
   EnquiryStatus,
@@ -18,13 +36,14 @@ import type {
 // using the PostgreSQL `public.is_admin()` function.
 //
 const AUTHORIZED_ADMIN_EMAILS = [
+  'daycare@abhyudaya-school.com',
   'abhyudayapreschool@gmail.com',
   'jothisanjay659@gmail.com',
   'sreelakshmij67@gmail.com',
   'vkvsvishw91@gmail.com',
 ] as const
 
-function isAuthorizedAdmin(user: { email?: string | null; app_metadata?: { role?: string } } | null): boolean {
+function isAuthorizedAdmin(user: { email?: string | null; app_metadata?: Record<string, any> } | null): boolean {
   if (!user) return false
   if (user.app_metadata?.role === 'admin') return true
   const email = (user.email ?? '').trim().toLowerCase()
@@ -50,7 +69,7 @@ const STATUS_LABELS: Record<EnquiryStatus, string> = {
 // ── Admin Auth Hook ──────────────────────────────────────────────────────────
 
 function useAdminAuth() {
-  const [user, setUser] = useState<{ email?: string | null; app_metadata?: { role?: string } } | null>(null)
+  const [user, setUser] = useState<{ email?: string | null; app_metadata?: Record<string, any> } | null>(null)
   const [loading, setLoading] = useState(true)
   const [authError, setAuthError] = useState('')
 
@@ -73,7 +92,7 @@ function useAdminAuth() {
         if (!isMounted) return
         const currentUser = data?.session?.user ?? null
         if (currentUser && !isAuthorizedAdmin(currentUser)) {
-          supabase?.auth.signOut().catch(() => {})
+          supabase?.auth.signOut().catch(() => { })
           setUser(null)
           setAuthError(
             `Access denied: The account ${currentUser.email} is not an authorized administrator.`,
@@ -96,7 +115,7 @@ function useAdminAuth() {
       if (!isMounted) return
       const currentUser = session?.user ?? null
       if (currentUser && !isAuthorizedAdmin(currentUser)) {
-        await supabase?.auth.signOut().catch(() => {})
+        await supabase?.auth.signOut().catch(() => { })
         setUser(null)
         setAuthError(
           `Access denied: The account ${currentUser.email} is not an authorized administrator.`,
@@ -228,7 +247,7 @@ function AdminLogin({ onBackToSite, initialError }: AdminLoginProps) {
               autoFocus
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="e.g. abhyudayapreschool@gmail.com"
+              placeholder="e.g. daycare@abhyudaya-school.com"
               className="w-full px-4 py-3 rounded-xl border border-[#e0d0f8] focus:outline-none focus:ring-2 focus:ring-[#5a3a8a] text-sm bg-[#fdfaff] transition-all"
             />
           </div>
@@ -317,6 +336,9 @@ function AdminDashboard({ userEmail, onBackToSite }: AdminDashboardProps) {
   // Testimonial filter
   const [testimonialFilter, setTestimonialFilter] = useState<'all' | 'published' | 'pending'>('all')
 
+  // Gallery category filter
+  const [galleryCategoryFilter, setGalleryCategoryFilter] = useState<string>('All')
+
   // Modals for Create/Edit
   const [programModal, setProgramModal] = useState<{ open: boolean; data?: Partial<Program> }>({ open: false })
   const [eventModal, setEventModal] = useState<{ open: boolean; data?: Partial<PreschoolEvent> }>({ open: false })
@@ -342,6 +364,7 @@ function AdminDashboard({ userEmail, onBackToSite }: AdminDashboardProps) {
     if (!supabase) return
     setLoading(true)
     try {
+      // 1. Fetch Supabase collections (Programs, Events, Gallery, Testimonials, Historical Enquiries/Announcements)
       const [enqRes, progRes, evtRes, annRes, galRes, tstRes] = await Promise.all([
         supabase.from('enquiries').select('*').order('created_at', { ascending: false }),
         supabase.from('programs').select('*').order('created_at', { ascending: true }),
@@ -354,15 +377,65 @@ function AdminDashboard({ userEmail, onBackToSite }: AdminDashboardProps) {
       if (enqRes.error) console.error('Enquiries fetch error:', enqRes.error)
       if (progRes.error) console.error('Programs fetch error:', progRes.error)
 
-      setEnquiries((enqRes.data ?? []) as Enquiry[])
+      // 2. Fetch active Enquiries & Admissions from MongoDB Atlas via Express API
+      let mongoEnquiries: Enquiry[] = []
+      try {
+        const mongoEnqRes = await getEnquiriesApi()
+        if (mongoEnqRes.success && Array.isArray(mongoEnqRes.data)) {
+          mongoEnquiries = mongoEnqRes.data.map(e => ({ ...e, _source: 'mongodb' as const }))
+        }
+      } catch (mErr) {
+        console.warn('[Admin] MongoDB enquiries query warning:', mErr)
+      }
+
+      // Merge MongoDB enquiries with historical Supabase records
+      const historicalSupabaseEnquiries = ((enqRes.data ?? []) as Enquiry[]).map(e => ({ ...e, _source: 'supabase' as const }))
+      const seenEnqIds = new Set(mongoEnquiries.map(m => m.id))
+      const combinedEnquiries = [
+        ...mongoEnquiries,
+        ...historicalSupabaseEnquiries.filter(s => !seenEnqIds.has(s.id)),
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+      setEnquiries(combinedEnquiries)
+
+      // 3. Fetch announcements from MongoDB Atlas via Express API
+      let mongoAnnouncements: Announcement[] = []
+      try {
+        const mongoAnnRes = await getAdminAnnouncementsApi()
+        if (mongoAnnRes.success && Array.isArray(mongoAnnRes.data)) {
+          mongoAnnouncements = mongoAnnRes.data.map(a => ({ ...a, _source: 'mongodb' as const }))
+        }
+      } catch (mErr) {
+        console.warn('[Admin] MongoDB announcements query warning:', mErr)
+      }
+
+      // Merge MongoDB announcements with historical Supabase announcements
+      const historicalSupabaseAnnouncements = ((annRes.data ?? []) as Announcement[]).map(a => ({ ...a, _source: 'supabase' as const }))
+      const seenAnnIds = new Set(mongoAnnouncements.map(m => m.id))
+      const combinedAnnouncements = [
+        ...mongoAnnouncements,
+        ...historicalSupabaseAnnouncements.filter(s => !seenAnnIds.has(s.id)),
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+      setAnnouncements(combinedAnnouncements)
+
       setPrograms((progRes.data ?? []) as Program[])
       setEvents((evtRes.data ?? []) as PreschoolEvent[])
-      setAnnouncements((annRes.data ?? []) as Announcement[])
-      setGallery((galRes.data ?? []) as GalleryRecord[])
+      const remoteGallery = (galRes.data ?? []) as GalleryRecord[]
+      const localGallery = getLocalGallery()
+      if (remoteGallery.length > 0) {
+        const remoteIds = new Set(remoteGallery.map(r => r.id))
+        const combined = [...localGallery.filter(l => !remoteIds.has(l.id)), ...remoteGallery]
+        setGallery(combined)
+      } else if (localGallery.length > 0) {
+        setGallery(localGallery)
+      } else {
+        setGallery(DEFAULT_GALLERY)
+      }
       setTestimonials((tstRes.data ?? []) as TestimonialRecord[])
     } catch (err) {
       console.error('Fetch error:', err)
-      showError('Failed to fetch data from Supabase. Ensure database tables exist.')
+      showError('Failed to fetch data from database. Ensure database tables exist.')
     } finally {
       setLoading(false)
     }
@@ -376,30 +449,55 @@ function AdminDashboard({ userEmail, onBackToSite }: AdminDashboardProps) {
     }
   }
 
-  // ── Enquiry Actions ────────────────────────────────────────────────────────
+  // ── Enquiry Actions (Hybrid MERN + Supabase) ───────────────────────────────
 
   async function updateEnquiryStatus(id: string, status: EnquiryStatus) {
-    if (!supabase) return
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.from('enquiries') as any).update({ status }).eq('id', id)
-    if (error) {
-      showError('Failed to update status: ' + error.message)
+    const target = enquiries.find(e => e.id === id)
+    if (target?._source === 'supabase') {
+      if (!supabase) return
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from('enquiries') as any).update({ status }).eq('id', id)
+      if (error) {
+        showError('Failed to update status in Supabase: ' + error.message)
+      } else {
+        setEnquiries(prev => prev.map(e => (e.id === id ? { ...e, status } : e)))
+        showNotification(`Historical enquiry status updated to "${status}".`)
+      }
     } else {
-      setEnquiries(prev => prev.map(e => (e.id === id ? { ...e, status } : e)))
-      showNotification(`Enquiry status updated to "${status}".`)
+      // MongoDB Atlas Update via Express API
+      const res = await updateEnquiryStatusApi(id, status)
+      if (!res.success) {
+        showError('Failed to update status in MongoDB: ' + (res.error || 'Unknown error'))
+      } else {
+        setEnquiries(prev => prev.map(e => (e.id === id ? { ...e, status } : e)))
+        showNotification(`Enquiry status updated to "${status}".`)
+      }
     }
   }
 
   async function deleteEnquiry(id: string) {
     if (!confirm('Are you sure you want to delete this enquiry? This action cannot be undone.')) return
-    if (!supabase) return
-    const { error } = await supabase.from('enquiries').delete().eq('id', id)
-    if (error) {
-      showError('Failed to delete enquiry: ' + error.message)
+    const target = enquiries.find(e => e.id === id)
+    if (target?._source === 'supabase') {
+      if (!supabase) return
+      const { error } = await supabase.from('enquiries').delete().eq('id', id)
+      if (error) {
+        showError('Failed to delete enquiry from Supabase: ' + error.message)
+      } else {
+        setEnquiries(prev => prev.filter(e => e.id !== id))
+        if (selectedEnquiry?.id === id) setSelectedEnquiry(null)
+        showNotification('Historical enquiry deleted.')
+      }
     } else {
-      setEnquiries(prev => prev.filter(e => e.id !== id))
-      if (selectedEnquiry?.id === id) setSelectedEnquiry(null)
-      showNotification('Enquiry deleted.')
+      // MongoDB Atlas Delete via Express API
+      const res = await deleteEnquiryApi(id)
+      if (!res.success) {
+        showError('Failed to delete enquiry from MongoDB: ' + (res.error || 'Unknown error'))
+      } else {
+        setEnquiries(prev => prev.filter(e => e.id !== id))
+        if (selectedEnquiry?.id === id) setSelectedEnquiry(null)
+        showNotification('Enquiry deleted.')
+      }
     }
   }
 
@@ -449,13 +547,13 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
     }
     const parentName = data.parent_display_name?.trim()
     const feedback = data.feedback?.trim()
-    if (!parentName || !feedback) {
-      showError('Parent name and feedback are required.')
+    if (!feedback) {
+      showError('Feedback is required.')
       return
     }
 
     const payload = {
-      parent_display_name: parentName,
+      parent_display_name: parentName || 'Parent',
       feedback,
       child_info: data.child_info?.trim() || null,
       avatar: data.avatar?.trim() || '👩‍💼',
@@ -465,7 +563,7 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
 
     if (data.id) {
       // Edit
-      const { error } = await supabase.from('testimonials').update(payload).eq('id', data.id)
+      const { error } = await (supabase.from('testimonials') as any).update(payload).eq('id', data.id)
       if (error) {
         showError('Failed to update testimonial: ' + error.message)
       } else {
@@ -478,7 +576,7 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
       }
     } else {
       // Insert
-      const { error } = await supabase.from('testimonials').insert([payload])
+      const { error } = await (supabase.from('testimonials') as any).insert([payload])
       if (error) {
         showError('Failed to add testimonial: ' + error.message)
       } else {
@@ -521,8 +619,7 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
       return
     }
     const newStatus = !prog.published
-    const { error } = await supabase
-      .from('programs')
+    const { error } = await (supabase.from('programs') as any)
       .update({ published: newStatus, updated_at: new Date().toISOString() })
       .eq('id', prog.id)
     if (error) {
@@ -564,7 +661,7 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
     }
 
     if (data.id) {
-      const { error } = await supabase.from('programs').update(payload).eq('id', data.id)
+      const { error } = await (supabase.from('programs') as any).update(payload).eq('id', data.id)
       if (error) {
         showError('Failed to update program: ' + error.message)
       } else {
@@ -576,7 +673,7 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
         }
       }
     } else {
-      const { error } = await supabase.from('programs').insert([payload])
+      const { error } = await (supabase.from('programs') as any).insert([payload])
       if (error) {
         showError('Failed to add program: ' + error.message)
       } else {
@@ -617,7 +714,7 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
       return
     }
     const newStatus = !evt.published
-    const { error } = await supabase.from('events').update({ published: newStatus }).eq('id', evt.id)
+    const { error } = await (supabase.from('events') as any).update({ published: newStatus }).eq('id', evt.id)
     if (error) {
       showError('Failed to update event: ' + error.message)
     } else {
@@ -651,7 +748,7 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
     }
 
     if (data.id) {
-      const { error } = await supabase.from('events').update(payload).eq('id', data.id)
+      const { error } = await (supabase.from('events') as any).update(payload).eq('id', data.id)
       if (error) {
         showError('Failed to update event: ' + error.message)
       } else {
@@ -663,7 +760,7 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
         }
       }
     } else {
-      const { error } = await supabase.from('events').insert([payload])
+      const { error } = await (supabase.from('events') as any).insert([payload])
       if (error) {
         showError('Failed to create event: ' + error.message)
       } else {
@@ -696,32 +793,43 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
     }
   }
 
-  // ── Announcements Actions ───────────────────────────────────────────────────
+  // ── Announcements Actions (Hybrid MERN + Supabase) ─────────────────────────
 
   async function toggleAnnouncementPublished(ann: Announcement) {
-    if (!supabase) {
-      showError('Database is not connected. Please verify your Supabase configuration.')
-      return
-    }
     const newStatus = !ann.published
-    const { error } = await supabase.from('announcements').update({ published: newStatus }).eq('id', ann.id)
-    if (error) {
-      showError('Failed to update announcement: ' + error.message)
-    } else {
-      setAnnouncements(prev => prev.map(a => (a.id === ann.id ? { ...a, published: newStatus } : a)))
-      showNotification(`Announcement "${ann.title}" is now ${newStatus ? 'published' : 'draft'}.`)
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+    if (ann._source === 'supabase') {
+      if (!supabase) {
+        showError('Database is not connected. Please verify your Supabase configuration.')
+        return
       }
-      await fetchAllData()
+      const { error } = await (supabase.from('announcements') as any).update({ published: newStatus }).eq('id', ann.id)
+      if (error) {
+        showError('Failed to update announcement in Supabase: ' + error.message)
+      } else {
+        setAnnouncements(prev => prev.map(a => (a.id === ann.id ? { ...a, published: newStatus } : a)))
+        showNotification(`Announcement "${ann.title}" is now ${newStatus ? 'published' : 'draft'}.`)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+        }
+        await fetchAllData()
+      }
+    } else {
+      // MongoDB Atlas Toggle via Express API
+      const res = await toggleAnnouncementPublishedApi(ann.id, newStatus)
+      if (!res.success) {
+        showError('Failed to update announcement in MongoDB: ' + (res.error || 'Unknown error'))
+      } else {
+        setAnnouncements(prev => prev.map(a => (a.id === ann.id ? { ...a, published: newStatus } : a)))
+        showNotification(`Announcement "${ann.title}" is now ${newStatus ? 'published' : 'draft'}.`)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+        }
+        await fetchAllData()
+      }
     }
   }
 
   async function saveAnnouncement(data: Partial<Announcement>) {
-    if (!supabase) {
-      showError('Database is not connected. Please verify your Supabase configuration.')
-      return
-    }
     const title = data.title?.trim()
     const content = data.content?.trim()
     if (!title || !content) {
@@ -736,21 +844,39 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
     }
 
     if (data.id) {
-      const { error } = await supabase.from('announcements').update(payload).eq('id', data.id)
-      if (error) {
-        showError('Failed to update announcement: ' + error.message)
+      const target = announcements.find(a => a.id === data.id)
+      if (target?._source === 'supabase') {
+        if (!supabase) return
+        const { error } = await (supabase.from('announcements') as any).update(payload).eq('id', data.id)
+        if (error) {
+          showError('Failed to update announcement in Supabase: ' + error.message)
+        } else {
+          showNotification('Announcement updated successfully.')
+          setAnnouncementModal({ open: false })
+          await fetchAllData()
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+          }
+        }
       } else {
-        showNotification('Announcement updated successfully.')
-        setAnnouncementModal({ open: false })
-        await fetchAllData()
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+        // MongoDB Atlas Update via Express API
+        const res = await updateAnnouncementApi(data.id, payload)
+        if (!res.success) {
+          showError('Failed to update announcement in MongoDB: ' + (res.error || 'Unknown error'))
+        } else {
+          showNotification('Announcement updated successfully.')
+          setAnnouncementModal({ open: false })
+          await fetchAllData()
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+          }
         }
       }
     } else {
-      const { error } = await supabase.from('announcements').insert([payload])
-      if (error) {
-        showError('Failed to post announcement: ' + error.message)
+      // MongoDB Atlas Create via Express API
+      const res = await createAnnouncementApi(payload)
+      if (!res.success) {
+        showError('Failed to post announcement to MongoDB: ' + (res.error || 'Unknown error'))
       } else {
         showNotification('Announcement posted successfully.')
         setAnnouncementModal({ open: false })
@@ -764,109 +890,180 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
 
   async function deleteAnnouncement(id: string) {
     if (!confirm('Are you sure you want to delete this announcement? This action cannot be undone.')) return
-    if (!supabase) {
-      showError('Database is not connected.')
-      return
-    }
-    const { error } = await supabase.from('announcements').delete().eq('id', id)
-    if (error) {
-      showError('Failed to delete announcement: ' + error.message)
-    } else {
-      setAnnouncements(prev => prev.filter(a => a.id !== id))
-      showNotification('Announcement deleted successfully.')
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+    const target = announcements.find(a => a.id === id)
+    if (target?._source === 'supabase') {
+      if (!supabase) {
+        showError('Database is not connected.')
+        return
       }
-      await fetchAllData()
+      const { error } = await supabase.from('announcements').delete().eq('id', id)
+      if (error) {
+        showError('Failed to delete announcement from Supabase: ' + error.message)
+      } else {
+        setAnnouncements(prev => prev.filter(a => a.id !== id))
+        showNotification('Announcement deleted successfully.')
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+        }
+        await fetchAllData()
+      }
+    } else {
+      // MongoDB Atlas Delete via Express API
+      const res = await deleteAnnouncementApi(id)
+      if (!res.success) {
+        showError('Failed to delete announcement from MongoDB: ' + (res.error || 'Unknown error'))
+      } else {
+        setAnnouncements(prev => prev.filter(a => a.id !== id))
+        showNotification('Announcement deleted successfully.')
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+        }
+        await fetchAllData()
+      }
     }
   }
 
   // ── Gallery Actions ─────────────────────────────────────────────────────────
 
   async function toggleGalleryPublished(item: GalleryRecord) {
-    if (!supabase) {
-      showError('Database is not connected. Please verify your Supabase configuration.')
-      return
-    }
     const newStatus = !item.published
-    const { error } = await supabase.from('gallery').update({ published: newStatus }).eq('id', item.id)
-    if (error) {
-      showError('Failed to update gallery photo: ' + error.message)
-    } else {
-      setGallery(prev => prev.map(g => (g.id === item.id ? { ...g, published: newStatus } : g)))
-      showNotification(`Gallery photo "${item.title}" is now ${newStatus ? 'published' : 'draft'}.`)
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+    if (supabase) {
+      try {
+        const { error } = await (supabase.from('gallery') as any).update({ published: newStatus }).eq('id', item.id)
+        if (error) console.warn('[Supabase] Toggle error:', error.message)
+      } catch (e) {
+        console.warn('[Supabase] Toggle exception:', e)
       }
-      await fetchAllData()
+    }
+
+    // Persist in local storage
+    const currentLocal = getLocalGallery()
+    const updatedLocal = currentLocal.map(g => (g.id === item.id ? { ...g, published: newStatus } : g))
+    if (!currentLocal.some(g => g.id === item.id)) {
+      updatedLocal.push({ ...item, published: newStatus })
+    }
+    saveLocalGallery(updatedLocal)
+
+    setGallery(prev => prev.map(g => (g.id === item.id ? { ...g, published: newStatus } : g)))
+    showNotification(`Gallery photo "${item.title}" is now ${newStatus ? 'published live' : 'hidden (draft)'}.`)
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('preschool-content-updated'))
     }
   }
 
-  async function saveGallery(data: Partial<GalleryRecord>) {
-    if (!supabase) {
-      showError('Database is not connected. Please verify your Supabase configuration.')
-      return
-    }
-    const title = data.title?.trim()
-    const imageUrl = data.image_url?.trim()
-    if (!title || !imageUrl) {
-      showError('Gallery photo title and image are required.')
-      return
-    }
+  async function saveGallery(data: Partial<GalleryRecord> | Partial<GalleryRecord>[]) {
+    const itemsToSave = Array.isArray(data) ? data : [data]
+    if (itemsToSave.length === 0) return
 
-    const payload = {
-      title,
-      image_url: imageUrl,
-      category: data.category?.trim() || 'Classroom',
-      emoji: data.emoji?.trim() || '📸',
-      description: data.description?.trim() || null,
-      published: Boolean(data.published),
-    }
+    const payloads: GalleryRecord[] = itemsToSave.map((item, idx) => {
+      const title = item.title?.trim() || `Photo ${idx + 1}`
+      const imageUrl = item.image_url?.trim() || '/gallery1.jpg'
+      const cat = item.category?.trim() || 'Classroom'
+      return {
+        id: item.id || `gal-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 7)}`,
+        title,
+        image_url: imageUrl,
+        category: cat,
+        emoji: item.emoji?.trim() || CATEGORY_EMOJIS[cat] || '📸',
+        description: item.description?.trim() || null,
+        published: item.published !== false,
+        created_at: item.created_at || new Date().toISOString(),
+      }
+    })
 
-    if (data.id) {
-      const { error } = await supabase.from('gallery').update(payload).eq('id', data.id)
-      if (error) {
-        showError('Failed to update gallery photo: ' + error.message)
-      } else {
-        showNotification('Gallery photo updated successfully.')
-        setGalleryModal({ open: false })
-        await fetchAllData()
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+    // If editing a single photo that has an existing ID
+    if (!Array.isArray(data) && data.id) {
+      const singleItem = payloads[0]
+      if (supabase) {
+        try {
+          const { error } = await (supabase.from('gallery') as any).update({
+            title: singleItem.title,
+            image_url: singleItem.image_url,
+            category: singleItem.category,
+            emoji: singleItem.emoji,
+            description: singleItem.description,
+            published: singleItem.published,
+          }).eq('id', singleItem.id)
+          if (error) console.warn('[Supabase] Update error:', error.message)
+        } catch (e) {
+          console.warn('[Supabase] Update exception:', e)
         }
       }
+
+      // Update local storage
+      const currentLocal = getLocalGallery()
+      const updatedLocal = currentLocal.map(g => (g.id === singleItem.id ? singleItem : g))
+      if (!currentLocal.some(g => g.id === singleItem.id)) {
+        updatedLocal.unshift(singleItem)
+      }
+      saveLocalGallery(updatedLocal)
+
+      setGallery(prev => prev.map(g => (g.id === singleItem.id ? singleItem : g)))
+      showNotification(`Gallery photo "${singleItem.title}" updated successfully.`)
     } else {
-      const { error } = await supabase.from('gallery').insert([payload])
-      if (error) {
-        showError('Failed to add gallery photo: ' + error.message)
-      } else {
-        showNotification('Gallery photo added successfully.')
-        setGalleryModal({ open: false })
-        await fetchAllData()
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+      // Adding new photo(s)
+      if (supabase) {
+        try {
+          const dbPayloads = payloads.map(p => ({
+            title: p.title,
+            image_url: p.image_url,
+            category: p.category,
+            emoji: p.emoji,
+            description: p.description,
+            published: p.published,
+          }))
+          const { data: insertedData, error } = await (supabase.from('gallery') as any).insert(dbPayloads).select()
+          if (error) {
+            console.warn('[Supabase] Insert error, saving locally:', error.message)
+          } else if (insertedData && insertedData.length > 0) {
+            insertedData.forEach((row: any, i: number) => {
+              if (row.id && payloads[i]) payloads[i].id = row.id
+            })
+          }
+        } catch (e) {
+          console.warn('[Supabase] Insert exception, saving locally:', e)
         }
       }
+
+      // Persist in local storage
+      const currentLocal = getLocalGallery()
+      const updatedLocal = [...payloads, ...currentLocal]
+      saveLocalGallery(updatedLocal)
+
+      setGallery(prev => [...payloads, ...prev])
+      showNotification(`Successfully uploaded ${payloads.length} photo(s) to "${payloads[0].category}"!`)
     }
+
+    setGalleryModal({ open: false })
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+    }
+    await fetchAllData()
   }
 
   async function deleteGallery(id: string) {
     if (!confirm('Are you sure you want to delete this gallery item? This action cannot be undone.')) return
-    if (!supabase) {
-      showError('Database is not connected.')
-      return
-    }
-    const { error } = await supabase.from('gallery').delete().eq('id', id)
-    if (error) {
-      showError('Failed to delete gallery photo: ' + error.message)
-    } else {
-      setGallery(prev => prev.filter(g => g.id !== id))
-      showNotification('Gallery photo deleted successfully.')
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+
+    if (supabase) {
+      try {
+        const { error } = await supabase.from('gallery').delete().eq('id', id)
+        if (error) console.warn('[Supabase] Delete error:', error.message)
+      } catch (e) {
+        console.warn('[Supabase] Delete exception:', e)
       }
-      await fetchAllData()
     }
+
+    // Remove from local storage
+    const currentLocal = getLocalGallery()
+    const updatedLocal = currentLocal.filter(g => g.id !== id)
+    saveLocalGallery(updatedLocal)
+
+    setGallery(prev => prev.filter(g => g.id !== id))
+    showNotification('Gallery photo deleted successfully.')
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('preschool-content-updated'))
+    }
+    await fetchAllData()
   }
 
   // ── Filtered Enquiries ─────────────────────────────────────────────────────
@@ -967,11 +1164,10 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
                   aria-selected={isActive}
                   aria-controls={`panel-${tab.id}`}
                   onClick={() => setActiveTab(tab.id as AdminTab)}
-                  className={`min-h-[40px] py-2 px-3 sm:px-4 text-xs font-bold whitespace-nowrap transition-all rounded-lg flex items-center gap-1.5 sm:gap-2 shrink-0 cursor-pointer ${
-                    isActive
+                  className={`min-h-[40px] py-2 px-3 sm:px-4 text-xs font-bold whitespace-nowrap transition-all rounded-lg flex items-center gap-1.5 sm:gap-2 shrink-0 cursor-pointer ${isActive
                       ? 'bg-white/15 text-white font-extrabold border-b-2 border-[#b48de8]'
                       : 'text-[#c8b8dc] hover:text-white hover:bg-white/5'
-                  }`}
+                    }`}
                 >
                   <span aria-hidden="true">{tab.icon}</span>
                   <span>{tab.label}</span>
@@ -1208,11 +1404,10 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
                         <button
                           key={s}
                           onClick={() => setEnquiryFilter(s)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold capitalize transition-all ${
-                            enquiryFilter === s
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold capitalize transition-all ${enquiryFilter === s
                               ? 'bg-[#5a3a8a] text-white shadow-sm'
                               : 'bg-[#f4effc] text-[#5a3a8a] hover:bg-[#ebe0f8]'
-                          }`}
+                            }`}
                         >
                           {s} ({enquiryCounts[s]})
                         </button>
@@ -1307,9 +1502,8 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
                               <select
                                 value={enq.status}
                                 onChange={e => updateEnquiryStatus(enq.id, e.target.value as EnquiryStatus)}
-                                className={`px-2.5 py-1 rounded-xl text-xs font-bold border cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#5a3a8a] ${
-                                  STATUS_STYLES[enq.status]
-                                }`}
+                                className={`px-2.5 py-1 rounded-xl text-xs font-bold border cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#5a3a8a] ${STATUS_STYLES[enq.status]
+                                  }`}
                               >
                                 <option value="pending">⏳ Pending</option>
                                 <option value="contacted">📞 Contacted</option>
@@ -1382,11 +1576,10 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
                           </span>
                           <button
                             onClick={() => toggleProgramPublished(prog)}
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase transition-all ${
-                              prog.published
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase transition-all ${prog.published
                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                                 : 'bg-gray-100 text-gray-600 border border-gray-300'
-                            }`}
+                              }`}
                           >
                             {prog.published ? '✅ Published' : '🔒 Draft'}
                           </button>
@@ -1461,11 +1654,10 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
                           </span>
                           <button
                             onClick={() => toggleEventPublished(evt)}
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase transition-all ${
-                              evt.published
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase transition-all ${evt.published
                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                                 : 'bg-gray-100 text-gray-600 border border-gray-300'
-                            }`}
+                              }`}
                           >
                             {evt.published ? '✅ Published' : '🔒 Draft'}
                           </button>
@@ -1526,9 +1718,8 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
                         <div className="flex items-center gap-2">
                           <h3 className="font-black text-sm text-[#3d2a50]">{ann.title}</h3>
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                              ann.published ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'
-                            }`}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${ann.published ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'
+                              }`}
                           >
                             {ann.published ? 'Published' : 'Draft'}
                           </span>
@@ -1571,67 +1762,106 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
                       Campus &amp; Activity Gallery
                     </h2>
                     <p className="text-xs text-[#8a7a9a] mt-0.5">
-                      Showcase classroom spaces, play activities, outdoor games, and celebrations
+                      Upload multiple photos by category — Classroom, Activities, Outdoor Play, Events, Campus, Daycare
+                    </p>
+                    <p className="text-[10px] text-[#b0a0c0] mt-1">
+                      Total: {gallery.length} photos • Published: {gallery.filter(g => g.published).length} • Draft: {gallery.filter(g => !g.published).length}
                     </p>
                   </div>
                   <button
                     onClick={() => setGalleryModal({ open: true })}
-                    className="px-4 py-2 bg-[#5a3a8a] text-white rounded-xl text-xs font-bold hover:bg-[#4a2a7a] transition-all flex items-center gap-1.5 shadow-sm"
+                    className="px-4 py-2.5 bg-[#5a3a8a] text-white rounded-xl text-xs font-bold hover:bg-[#4a2a7a] transition-all flex items-center gap-1.5 shadow-sm"
                   >
-                    <span>➕</span> Add Gallery Item
+                    <span>📸</span> Upload Photos
                   </button>
                 </div>
 
-                <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {gallery.map(item => (
-                    <div
-                      key={item.id}
-                      className="rounded-2xl border border-[#e8dff5] overflow-hidden bg-[#fdfaff] shadow-sm flex flex-col justify-between"
-                    >
-                      <div className="relative aspect-video bg-[#f0e8f8] overflow-hidden">
-                        <img
-                          src={item.image_url}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                          onError={e => {
-                            ;(e.target as HTMLImageElement).src = '/gallery1.jpg'
-                          }}
-                        />
-                        <button
-                          onClick={() => toggleGalleryPublished(item)}
-                          className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase shadow-sm ${
-                            item.published
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-gray-800/80 text-white'
+                {/* Category filter pills */}
+                <div className="flex flex-wrap gap-2">
+                  {['All', ...GALLERY_CATEGORIES].map(cat => {
+                    const count = cat === 'All' ? gallery.length : gallery.filter(g => g.category === cat).length
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => setGalleryCategoryFilter(cat)}
+                        className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer ${galleryCategoryFilter === cat
+                            ? 'bg-[#5a3a8a] text-white shadow-sm'
+                            : 'bg-[#f5efff] text-[#5a3a8a] hover:bg-[#e8dcf5] border border-[#e0d0f8]'
                           }`}
-                        >
-                          {item.published ? 'Live' : 'Hidden'}
-                        </button>
-                        <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-bold">
-                          {item.emoji || '📸'} {item.category}
+                      >
+                        <span>{CATEGORY_EMOJIS[cat] || '✨'}</span>
+                        <span>{cat}</span>
+                        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${galleryCategoryFilter === cat ? 'bg-white/25 text-white' : 'bg-white text-[#5a3a8a]'
+                          }`}>
+                          {count}
                         </span>
-                      </div>
+                      </button>
+                    )
+                  })}
+                </div>
 
-                      <div className="p-3.5 space-y-2">
-                        <h4 className="font-bold text-xs text-[#3d2a50] line-clamp-1">{item.title}</h4>
-                        <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-[#f0e8f8]">
+                <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {gallery
+                    .filter(item => galleryCategoryFilter === 'All' || item.category === galleryCategoryFilter)
+                    .map(item => (
+                      <div
+                        key={item.id}
+                        className="rounded-2xl border border-[#e8dff5] overflow-hidden bg-[#fdfaff] shadow-sm flex flex-col justify-between"
+                      >
+                        <div className="relative aspect-video bg-[#f0e8f8] overflow-hidden">
+                          <img
+                            src={item.image_url}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                            onError={e => {
+                              ; (e.target as HTMLImageElement).src = '/gallery1.jpg'
+                            }}
+                          />
                           <button
-                            onClick={() => setGalleryModal({ open: true, data: item })}
-                            className="px-2 py-0.5 bg-[#f0e8f8] text-[#5a3a8a] rounded text-[11px] font-bold hover:bg-[#e0d0f8]"
+                            onClick={() => toggleGalleryPublished(item)}
+                            className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase shadow-sm cursor-pointer ${item.published
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-gray-800/80 text-white'
+                              }`}
                           >
-                            Edit
+                            {item.published ? 'Live' : 'Hidden'}
                           </button>
-                          <button
-                            onClick={() => deleteGallery(item.id)}
-                            className="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[11px] font-bold hover:bg-red-100"
-                          >
-                            🗑️
-                          </button>
+                          <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-bold">
+                            {item.emoji || '📸'} {item.category}
+                          </span>
+                        </div>
+
+                        <div className="p-3.5 space-y-2">
+                          <h4 className="font-bold text-xs text-[#3d2a50] line-clamp-1">{item.title}</h4>
+                          {item.description && (
+                            <p className="text-[10px] text-[#8a7a9a] line-clamp-2">{item.description}</p>
+                          )}
+                          <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-[#f0e8f8]">
+                            <button
+                              onClick={() => setGalleryModal({ open: true, data: item })}
+                              className="px-2 py-0.5 bg-[#f0e8f8] text-[#5a3a8a] rounded text-[11px] font-bold hover:bg-[#e0d0f8] cursor-pointer"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => deleteGallery(item.id)}
+                              className="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[11px] font-bold hover:bg-red-100 cursor-pointer"
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
+
+                {gallery.filter(item => galleryCategoryFilter === 'All' || item.category === galleryCategoryFilter).length === 0 && (
+                  <div className="py-12 text-center">
+                    <span className="text-3xl block mb-2">📸</span>
+                    <p className="text-sm font-bold text-[#8a7a9a]">No photos in "{galleryCategoryFilter}"</p>
+                    <p className="text-xs text-[#b0a0c0] mt-1">Click "Upload Photos" to add photos to this category.</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1662,31 +1892,28 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
                 <div className="flex gap-2">
                   <button
                     onClick={() => setTestimonialFilter('all')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      testimonialFilter === 'all'
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${testimonialFilter === 'all'
                         ? 'bg-[#5a3a8a] text-white'
                         : 'bg-[#f5efff] text-[#5a3a8a] hover:bg-[#ebe0f8]'
-                    }`}
+                      }`}
                   >
                     All ({testimonials.length})
                   </button>
                   <button
                     onClick={() => setTestimonialFilter('published')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      testimonialFilter === 'published'
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${testimonialFilter === 'published'
                         ? 'bg-emerald-700 text-white'
                         : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
-                    }`}
+                      }`}
                   >
                     Published Live ({testimonials.filter(t => t.published).length})
                   </button>
                   <button
                     onClick={() => setTestimonialFilter('pending')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      testimonialFilter === 'pending'
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${testimonialFilter === 'pending'
                         ? 'bg-amber-600 text-white'
                         : 'bg-amber-50 text-amber-900 hover:bg-amber-100'
-                    }`}
+                      }`}
                   >
                     Pending Approval ({unapprovedTestimonialsCount})
                   </button>
@@ -1702,11 +1929,10 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
                     .map(item => (
                       <div
                         key={item.id}
-                        className={`rounded-2xl border p-5 flex flex-col justify-between gap-4 transition-all shadow-sm ${
-                          item.published
+                        className={`rounded-2xl border p-5 flex flex-col justify-between gap-4 transition-all shadow-sm ${item.published
                             ? 'bg-white border-emerald-200'
                             : 'bg-[#fffdfa] border-amber-300'
-                        }`}
+                          }`}
                       >
                         <div>
                           <div className="flex items-center justify-between mb-3">
@@ -1733,11 +1959,10 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
                         <div className="pt-3 border-t border-[#f0e8f8] flex items-center justify-between gap-2">
                           <button
                             onClick={() => toggleTestimonialPublished(item)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all shadow-sm flex items-center gap-1.5 ${
-                              item.published
+                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all shadow-sm flex items-center gap-1.5 ${item.published
                                 ? 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100'
                                 : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                            }`}
+                              }`}
                           >
                             {item.published ? '🔒 Unpublish' : '✅ Approve & Publish'}
                           </button>
@@ -1911,16 +2136,6 @@ function TestimonialEditorModal({
           {initialData?.id ? 'Edit Testimonial' : 'Add Genuine Parent Testimonial'}
         </h3>
         <div className="space-y-3 text-xs">
-          <div>
-            <label className="font-bold text-[#8a7a9a] block mb-1">Parent Name *</label>
-            <input
-              required
-              value={form.parent_display_name}
-              onChange={e => setForm({ ...form, parent_display_name: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-[#e0d0f8]"
-              placeholder="e.g. Priya"
-            />
-          </div>
           <div>
             <label className="font-bold text-[#8a7a9a] block mb-1">Child Information</label>
             <input
@@ -2322,7 +2537,7 @@ function AnnouncementEditorModal({
               value={form.title}
               onChange={e => setForm({ ...form, title: e.target.value })}
               className="w-full px-3 py-2 rounded-xl border border-[#e0d0f8]"
-              placeholder="e.g. 🌟 Admissions Open 2026–2027"
+              placeholder="e.g. 🌟 Admissions Open 2027–2028"
             />
           </div>
           <div>
@@ -2384,106 +2599,172 @@ function GalleryEditorModal({
 }: {
   initialData?: Partial<GalleryRecord>
   onClose: () => void
-  onSave: (data: Partial<GalleryRecord>) => Promise<void> | void
+  onSave: (data: Partial<GalleryRecord> | Partial<GalleryRecord>[]) => Promise<void> | void
 }) {
-  const [activeTab, setActiveTab] = useState<'upload' | 'url'>('upload')
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string>(initialData?.image_url || '/gallery1.jpg')
+  const isEditMode = Boolean(initialData?.id)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [filePreviews, setFilePreviews] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<string>('')
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 })
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
     title: initialData?.title || '',
-    image_url: initialData?.image_url || '/gallery1.jpg',
     category: initialData?.category || 'Classroom',
-    emoji: initialData?.emoji || '📸',
+    emoji: initialData?.emoji || '',
     description: initialData?.description || '',
     published: initialData?.published ?? true,
+    image_url: initialData?.image_url || '',
   })
 
-  // Clean up object URLs when unmounting or changing files
+  // Auto-set emoji when category changes
+  useEffect(() => {
+    if (!isEditMode && !form.emoji) {
+      setForm(prev => ({ ...prev, emoji: CATEGORY_EMOJIS[prev.category] || '📸' }))
+    }
+  }, [form.category, isEditMode, form.emoji])
+
+  // Clean up blob URLs on unmount
   useEffect(() => {
     return () => {
-      if (selectedFile && previewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(previewUrl)
+      filePreviews.forEach(url => {
+        if (url.startsWith('blob:')) URL.revokeObjectURL(url)
+      })
+    }
+  }, [filePreviews])
+
+  const handleMultiFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setErrorMsg(null)
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/gif']
+    const maxSize = 15 * 1024 * 1024
+
+    const validFiles: File[] = []
+    const errors: string[] = []
+
+    for (const file of files) {
+      if (!allowedTypes.includes(file.type)) {
+        errors.push(`${file.name}: Invalid format`)
+      } else if (file.size > maxSize) {
+        errors.push(`${file.name}: Too large (${(file.size / (1024 * 1024)).toFixed(1)}MB)`)
+      } else {
+        validFiles.push(file)
       }
     }
-  }, [selectedFile, previewUrl])
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setErrorMsg(null)
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
-    if (!allowedTypes.includes(file.type)) {
-      setErrorMsg('Invalid file format. Please upload JPG, PNG, or WebP.')
-      return
+    if (errors.length > 0) {
+      setErrorMsg(`Skipped: ${errors.join(', ')}`)
     }
 
-    const maxSize = 5 * 1024 * 1024 // 5 MB
-    if (file.size > maxSize) {
-      setErrorMsg(`File is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum allowed size is 5MB.`)
-      return
+    if (validFiles.length > 0) {
+      // Clean old previews
+      filePreviews.forEach(url => { if (url.startsWith('blob:')) URL.revokeObjectURL(url) })
+
+      const newFiles = [...selectedFiles, ...validFiles]
+      const newPreviews = newFiles.map(f => URL.createObjectURL(f))
+      setSelectedFiles(newFiles)
+      setFilePreviews(newPreviews)
     }
 
-    if (previewUrl && previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(previewUrl)
-    }
-
-    setSelectedFile(file)
-    const blobUrl = URL.createObjectURL(file)
-    setPreviewUrl(blobUrl)
+    // Reset input so re-selecting the same files works
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  const handleRemoveFile = () => {
-    if (previewUrl && previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(previewUrl)
-    }
-    setSelectedFile(null)
-    setPreviewUrl(form.image_url || '/gallery1.jpg')
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
+  const removeFile = (index: number) => {
+    const url = filePreviews[index]
+    if (url?.startsWith('blob:')) URL.revokeObjectURL(url)
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
+    setFilePreviews(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.title.trim()) {
-      setErrorMsg('Title is required.')
+
+    if (isEditMode) {
+      // Edit single photo
+      if (!form.title.trim()) {
+        setErrorMsg('Title is required.')
+        return
+      }
+      setErrorMsg(null)
+      setUploading(true)
+
+      try {
+        let finalUrl = form.image_url
+        if (selectedFiles.length === 1) {
+          setUploadStatus('Uploading photo...')
+          const res = await uploadGalleryImage(selectedFiles[0])
+          if (res.error || !res.url) throw new Error(res.error || 'Upload failed')
+          finalUrl = res.url
+        }
+
+        setUploadStatus('Saving...')
+        await onSave({
+          ...initialData,
+          title: form.title.trim(),
+          image_url: finalUrl || '/gallery1.jpg',
+          category: form.category,
+          emoji: form.emoji.trim() || CATEGORY_EMOJIS[form.category] || '📸',
+          description: form.description.trim(),
+          published: form.published,
+        })
+      } catch (err: any) {
+        setErrorMsg(err.message || 'Failed to save')
+      } finally {
+        setUploading(false)
+        setUploadStatus('')
+      }
+      return
+    }
+
+    // Multi-upload mode
+    if (selectedFiles.length === 0) {
+      setErrorMsg('Please select at least one photo to upload.')
       return
     }
 
     setErrorMsg(null)
     setUploading(true)
+    setUploadProgress({ done: 0, total: selectedFiles.length })
 
     try {
-      let finalImageUrl = form.image_url.trim()
+      const uploadedItems: Partial<GalleryRecord>[] = []
 
-      if (selectedFile) {
-        setUploadStatus('Uploading photo to Supabase Storage...')
-        const uploadRes = await uploadGalleryImage(selectedFile)
-        if (uploadRes.error || !uploadRes.url) {
-          throw new Error(uploadRes.error || 'Failed to upload photo to Supabase Storage.')
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i]
+        setUploadStatus(`Uploading photo ${i + 1} of ${selectedFiles.length}...`)
+        setUploadProgress({ done: i, total: selectedFiles.length })
+
+        const res = await uploadGalleryImage(file)
+        if (res.url) {
+          const baseName = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ')
+          uploadedItems.push({
+            title: form.title.trim() || (selectedFiles.length === 1 ? baseName : `${form.category} Photo ${i + 1}`),
+            image_url: res.url,
+            category: form.category,
+            emoji: form.emoji.trim() || CATEGORY_EMOJIS[form.category] || '📸',
+            description: form.description.trim() || '',
+            published: form.published,
+          })
+        } else {
+          console.warn(`Failed to upload ${file.name}:`, res.error)
         }
-        finalImageUrl = uploadRes.url
       }
 
-      setUploadStatus('Saving gallery entry...')
-      await onSave({
-        ...initialData,
-        title: form.title.trim(),
-        image_url: finalImageUrl || '/gallery1.jpg',
-        category: form.category,
-        emoji: form.emoji.trim() || '📸',
-        description: form.description.trim(),
-        published: form.published,
-      })
+      setUploadProgress({ done: selectedFiles.length, total: selectedFiles.length })
+
+      if (uploadedItems.length === 0) {
+        throw new Error('All uploads failed. Check your connection or try again.')
+      }
+
+      setUploadStatus(`Saving ${uploadedItems.length} photo(s)...`)
+      await onSave(uploadedItems)
     } catch (err: any) {
-      console.error('Gallery save error:', err)
-      setErrorMsg(err.message || 'An error occurred while saving the gallery entry.')
+      setErrorMsg(err.message || 'Upload failed')
     } finally {
       setUploading(false)
       setUploadStatus('')
@@ -2492,10 +2773,13 @@ function GalleryEditorModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-[#e0d0f8] space-y-4 max-h-[92vh] overflow-y-auto">
-        <h3 className="font-black text-sm text-[#3d2a50]">
-          {initialData?.id ? 'Edit Gallery Photo' : 'Add Photo to Gallery'}
-        </h3>
+      <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-[#e0d0f8] space-y-4 max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <h3 className="font-black text-sm text-[#3d2a50]">
+            {isEditMode ? '✏️ Edit Gallery Photo' : '📸 Upload Photos to Gallery'}
+          </h3>
+          <button onClick={onClose} className="text-[#8a7a9a] hover:text-[#3d2a50] text-lg cursor-pointer">✕</button>
+        </div>
 
         {errorMsg && (
           <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
@@ -2504,183 +2788,129 @@ function GalleryEditorModal({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+          {/* Category selector — shown prominently */}
           <div>
-            <label className="font-bold text-[#8a7a9a] block mb-1">Title *</label>
+            <label className="font-bold text-[#5a3a8a] block mb-1.5 text-sm">Select Category *</label>
+            <div className="grid grid-cols-3 gap-2">
+              {GALLERY_CATEGORIES.map(cat => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => {
+                    setForm(prev => ({ ...prev, category: cat, emoji: CATEGORY_EMOJIS[cat] || '📸' }))
+                  }}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 justify-center cursor-pointer ${form.category === cat
+                      ? 'bg-[#5a3a8a] text-white shadow-md ring-2 ring-[#5a3a8a]/30'
+                      : 'bg-[#faf5ff] text-[#5a3a8a] border border-[#e0d0f8] hover:bg-[#f0e8fc]'
+                    }`}
+                >
+                  <span>{CATEGORY_EMOJIS[cat] || '📸'}</span>
+                  <span className="truncate">{cat}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Title */}
+          <div>
+            <label className="font-bold text-[#8a7a9a] block mb-1">
+              {isEditMode ? 'Title *' : 'Title (optional for batch)'}
+            </label>
             <input
-              required
+              required={isEditMode}
               value={form.title}
               onChange={e => setForm({ ...form, title: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-[#e0d0f8]"
-              placeholder="e.g. Colourful Playroom Activities"
+              className="w-full px-3 py-2 rounded-xl border border-[#e0d0f8] focus:ring-2 focus:ring-[#5a3a8a]/30 outline-none"
+              placeholder={isEditMode ? 'Photo title' : 'Leave empty for auto-naming or enter common title'}
             />
           </div>
 
-          {/* Photo Source Tabs */}
+          {/* Photo upload area */}
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <label className="font-bold text-[#8a7a9a]">Image Source *</label>
-              <div className="ml-auto inline-flex p-0.5 rounded-lg bg-[#f0e8f8]">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('upload')}
-                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-all ${
-                    activeTab === 'upload'
-                      ? 'bg-white text-[#5a3a8a] shadow-sm'
-                      : 'text-[#8a7a9a] hover:text-[#5a3a8a]'
-                  }`}
-                >
-                  📁 Device File
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('url')}
-                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-all ${
-                    activeTab === 'url'
-                      ? 'bg-white text-[#5a3a8a] shadow-sm'
-                      : 'text-[#8a7a9a] hover:text-[#5a3a8a]'
-                  }`}
-                >
-                  🔗 URL / Presets
-                </button>
-              </div>
-            </div>
+            <label className="font-bold text-[#8a7a9a] block mb-1.5">
+              {isEditMode ? 'Replace Photo' : 'Select Photos *'}
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/jpg,image/gif"
+              multiple={!isEditMode}
+              onChange={handleMultiFileSelect}
+              className="hidden"
+              id="gallery-multi-picker"
+            />
 
-            {activeTab === 'upload' ? (
-              <div className="space-y-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/jpg"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="gallery-file-picker"
-                />
-
-                {selectedFile ? (
-                  <div className="p-3 bg-[#fbf9fe] rounded-2xl border border-[#e0d0f8] flex items-center gap-3">
-                    <img
-                      src={previewUrl}
-                      alt="Selected preview"
-                      className="w-14 h-14 object-cover rounded-xl border border-[#e0d0f8]"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-[#3d2a50] truncate">{selectedFile.name}</p>
-                      <p className="text-[11px] text-[#8a7a9a]">
-                        {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • {selectedFile.type.replace('image/', '').toUpperCase()}
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label
-                        htmlFor="gallery-file-picker"
-                        className="px-2 py-1 text-[11px] font-bold bg-[#f0e8f8] text-[#5a3a8a] rounded-lg hover:bg-[#e0d0f8] cursor-pointer text-center"
-                      >
-                        Change
-                      </label>
+            {/* Selected photos preview grid */}
+            {selectedFiles.length > 0 && (
+              <div className="mb-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-[#5a3a8a]">
+                    {selectedFiles.length} photo{selectedFiles.length > 1 ? 's' : ''} selected
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      filePreviews.forEach(url => { if (url.startsWith('blob:')) URL.revokeObjectURL(url) })
+                      setSelectedFiles([])
+                      setFilePreviews([])
+                    }}
+                    className="text-[10px] font-bold text-red-500 hover:text-red-700 cursor-pointer"
+                  >
+                    Clear All
+                  </button>
+                </div>
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-48 overflow-y-auto p-1">
+                  {filePreviews.map((url, idx) => (
+                    <div key={idx} className="relative group">
+                      <img
+                        src={url}
+                        alt={selectedFiles[idx]?.name}
+                        className="w-full aspect-square object-cover rounded-xl border border-[#e0d0f8]"
+                      />
                       <button
                         type="button"
-                        onClick={handleRemoveFile}
-                        className="px-2 py-1 text-[11px] font-bold bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
+                        onClick={() => removeFile(idx)}
+                        className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md cursor-pointer"
                       >
-                        Remove
+                        ✕
                       </button>
+                      <p className="text-[8px] text-[#8a7a9a] truncate mt-0.5 text-center">
+                        {(selectedFiles[idx]?.size / (1024 * 1024)).toFixed(1)}MB
+                      </p>
                     </div>
-                  </div>
-                ) : (
-                  <label
-                    htmlFor="gallery-file-picker"
-                    className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-[#d8c8f0] hover:border-[#5a3a8a] bg-[#faf7fd] hover:bg-[#f4edfd] rounded-2xl cursor-pointer transition-all text-center group"
-                  >
-                    <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">📸</span>
-                    <span className="font-bold text-xs text-[#5a3a8a]">Click to select a photo from your device</span>
-                    <span className="text-[10px] text-[#8a7a9a] mt-0.5">Supports JPG, PNG, WebP (Max 5MB)</span>
-                  </label>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <input
-                  value={form.image_url}
-                  onChange={e => {
-                    setForm({ ...form, image_url: e.target.value })
-                    setPreviewUrl(e.target.value)
-                  }}
-                  className="w-full px-3 py-2 rounded-xl border border-[#e0d0f8]"
-                  placeholder="https://... or /gallery1.jpg"
-                />
-                <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[#8a7a9a]">
-                  <span className="font-bold">Presets:</span>
-                  {['/gallery1.jpg', '/gallery2.jpg', '/gallery3.jpg', '/gallery4.jpg', '/gallery5.jpg'].map(preset => (
-                    <button
-                      type="button"
-                      key={preset}
-                      onClick={() => {
-                        setForm({ ...form, image_url: preset })
-                        setPreviewUrl(preset)
-                      }}
-                      className="px-2 py-0.5 rounded-md bg-[#f0e8f8] text-[#5a3a8a] hover:bg-[#e0d0f8]"
-                    >
-                      {preset.replace('/', '')}
-                    </button>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Live Preview Bar if available */}
-            {previewUrl && (
-              <div className="mt-2 flex items-center gap-2 p-2 rounded-xl bg-purple-50/50 border border-purple-100">
-                <img
-                  src={previewUrl}
-                  alt="Preview"
-                  onError={e => {
-                    ;(e.currentTarget as HTMLImageElement).src = '/gallery1.jpg'
-                  }}
-                  className="w-8 h-8 rounded-lg object-cover border border-[#e0d0f8]"
-                />
-                <span className="text-[11px] text-[#6a5a7a] truncate">Preview ready for gallery display</span>
-              </div>
-            )}
+            {/* Drop zone / Add more */}
+            <label
+              htmlFor="gallery-multi-picker"
+              className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-[#d8c8f0] hover:border-[#5a3a8a] bg-[#faf7fd] hover:bg-[#f4edfd] rounded-2xl cursor-pointer transition-all text-center group"
+            >
+              <span className="text-3xl mb-1.5 group-hover:scale-110 transition-transform">📸</span>
+              <span className="font-bold text-xs text-[#5a3a8a]">
+                {selectedFiles.length > 0 ? 'Click to add more photos' : 'Click to select photos from your device'}
+              </span>
+              <span className="text-[10px] text-[#8a7a9a] mt-0.5">
+                {isEditMode ? 'JPG, PNG, WebP (Max 15MB)' : 'Select multiple photos at once • JPG, PNG, WebP (Max 15MB each)'}
+              </span>
+            </label>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="font-bold text-[#8a7a9a] block mb-1">Category</label>
-              <select
-                value={form.category}
-                onChange={e => setForm({ ...form, category: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-[#e0d0f8]"
-              >
-                <option value="Classroom">Classroom</option>
-                <option value="Activities">Activities</option>
-                <option value="Outdoor">Outdoor</option>
-                <option value="Meditation">Meditation</option>
-                <option value="Mealtime">Mealtime</option>
-                <option value="Celebrations">Celebrations</option>
-                <option value="Arts & Crafts">Arts &amp; Crafts</option>
-              </select>
-            </div>
-            <div>
-              <label className="font-bold text-[#8a7a9a] block mb-1">Emoji</label>
-              <input
-                value={form.emoji}
-                onChange={e => setForm({ ...form, emoji: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-[#e0d0f8]"
-                placeholder="📸"
-              />
-            </div>
-          </div>
-
+          {/* Description */}
           <div>
             <label className="font-bold text-[#8a7a9a] block mb-1">Description</label>
             <input
               value={form.description}
               onChange={e => setForm({ ...form, description: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-[#e0d0f8]"
-              placeholder="Short photo caption..."
+              className="w-full px-3 py-2 rounded-xl border border-[#e0d0f8] focus:ring-2 focus:ring-[#5a3a8a]/30 outline-none"
+              placeholder="Short description for these photos..."
             />
           </div>
 
+          {/* Published checkbox */}
           <div className="flex items-center gap-2 pt-1">
             <input
               type="checkbox"
@@ -2689,31 +2919,49 @@ function GalleryEditorModal({
               onChange={e => setForm({ ...form, published: e.target.checked })}
             />
             <label htmlFor="gal-check" className="font-bold text-[#3d2a50] cursor-pointer">
-              Published live on website gallery
+              Publish live on website gallery
             </label>
           </div>
 
+          {/* Upload progress bar */}
+          {uploading && uploadProgress.total > 1 && (
+            <div className="space-y-1">
+              <div className="w-full bg-[#f0e8f8] rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-[#5a3a8a] h-full rounded-full transition-all duration-300"
+                  style={{ width: `${Math.round((uploadProgress.done / uploadProgress.total) * 100)}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-[#8a7a9a] text-center">
+                {uploadProgress.done} / {uploadProgress.total} photos uploaded
+              </p>
+            </div>
+          )}
+
+          {/* Submit / Cancel */}
           <div className="flex justify-end gap-2 pt-3 border-t">
             <button
               type="button"
               disabled={uploading}
               onClick={onClose}
-              className="px-3 py-1.5 text-xs text-[#8a7a9a] hover:bg-gray-100 rounded-xl"
+              className="px-3 py-1.5 text-xs text-[#8a7a9a] hover:bg-gray-100 rounded-xl cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={uploading}
-              className="px-4 py-1.5 text-xs font-bold bg-[#5a3a8a] text-white rounded-xl hover:bg-[#4a2a7a] disabled:opacity-50 flex items-center gap-1.5"
+              disabled={uploading || (!isEditMode && selectedFiles.length === 0)}
+              className="px-5 py-2 text-xs font-bold bg-[#5a3a8a] text-white rounded-xl hover:bg-[#4a2a7a] disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
             >
               {uploading ? (
                 <>
                   <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  {uploadStatus || 'Saving...'}
+                  {uploadStatus || 'Uploading...'}
                 </>
+              ) : isEditMode ? (
+                'Save Changes'
               ) : (
-                'Save Photo'
+                `Upload ${selectedFiles.length} Photo${selectedFiles.length !== 1 ? 's' : ''}`
               )}
             </button>
           </div>

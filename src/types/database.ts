@@ -95,6 +95,7 @@ export interface Enquiry {
   preferred_slot?: string | null
   status: EnquiryStatus
   created_at: string
+  _source?: 'mongodb' | 'supabase'
 }
 
 export interface EnquirySubmission {
@@ -126,6 +127,7 @@ export interface Announcement {
   content: string
   published: boolean
   created_at: string
+  _source?: 'mongodb' | 'supabase'
 }
 
 export interface GalleryRecord {

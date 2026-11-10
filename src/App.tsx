@@ -2315,7 +2315,7 @@ function ContactPage() {
                 </div>
                 <h2 className="text-lg font-black text-[#3d2a50] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>Phone &amp; Contact</h2>
                 <div className="space-y-1.5 text-sm text-[#5a4a6a]">
-                  <h2 className="text-lg font-black text-[#3d2a50] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>Abhyudayareschool</h2>
+                  <h2 className="text-lg font-black text-[#3d2a50] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>Abhyudaya Preschool</h2>
                   <div className="space-y-1.5 text-sm text-[#5a4a6a]"></div>
                   <div>
                     <span className="font-bold text-[#5a3a8a]">Mobile:</span>{' '}
@@ -2565,6 +2565,7 @@ function ContactPage() {
                       type="date"
                       value={visitForm.date}
                       onChange={e => setVisitForm({ ...visitForm, date: e.target.value })}
+                      placeholder="Date *"
                       min={new Date().toISOString().split('T')[0]}
                       className="w-full px-3 py-2.5 rounded-xl border border-[#e0d0f8] focus:outline-none focus:ring-2 focus:ring-[#b48de8] text-xs bg-[#fdfaff] transition-all"
                     />
@@ -2746,12 +2747,12 @@ function Footer({
           <div>
             <h3 className="font-black mb-3 text-[#e0d0f8] text-base" style={{ fontFamily: 'Nunito, sans-serif' }}>Our Programs</h3>
             <ul className="space-y-2 text-sm text-[#b0a0c0]">
-              <li>🍼 Daycare (1.5+ years | 8.30 AM – 7.30 PM)</li>
               <li>🎪 Playgroup</li>
               <li>🌱 Nursery</li>
               <li>📚 LKG &amp; UKG</li>
               <li>🎒 Afterschool Care</li>
               <li>🌈 Weekend Care</li>
+              <li>🍼 Daycare (1.5+ years | 8.30 AM – 7.30 PM)</li>
             </ul>
           </div>
 

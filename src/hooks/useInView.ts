@@ -7,8 +7,8 @@ interface UseInViewOptions {
 }
 
 export function useInView<T extends HTMLElement = HTMLDivElement>({
-  threshold = 0.08,
-  rootMargin = '0px 0px -10px 0px',
+  threshold = 0.05,
+  rootMargin = '0px 0px 30px 0px',
   triggerOnce = true,
 }: UseInViewOptions = {}) {
   const ref = useRef<T>(null)

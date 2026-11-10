@@ -16,14 +16,22 @@ export function ScrollReveal({
   style = {},
   delay = 0,
   direction = 'up',
-  duration = 600,
+  duration = 480,
 }: ScrollRevealProps) {
-  const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.12 })
+  // Trigger slightly sooner as content approaches the viewport
+  const { ref, inView } = useInView<HTMLDivElement>({
+    threshold: 0.05,
+    rootMargin: '0px 0px 40px 0px',
+  })
 
-  let initialTransform = 'translateY(24px)'
-  if (direction === 'down') initialTransform = 'translateY(-24px)'
-  else if (direction === 'scale') initialTransform = 'scale(0.95)'
+  // Slightly reduce travel distance from 24px to 16px so motion is smooth, natural, and arrives sooner
+  let initialTransform = 'translateY(16px)'
+  if (direction === 'down') initialTransform = 'translateY(-16px)'
+  else if (direction === 'scale') initialTransform = 'scale(0.97)'
   else if (direction === 'fade') initialTransform = 'none'
+
+  // Slightly compress caller-provided delay (~25% reduction) so staggered cards appear sooner
+  const adjustedDelay = Math.round(delay * 0.75)
 
   return (
     <div
@@ -34,7 +42,7 @@ export function ScrollReveal({
         opacity: inView ? 1 : 0,
         transform: inView ? 'translateY(0) scale(1)' : initialTransform,
         transitionDuration: `${duration}ms`,
-        transitionDelay: `${delay}ms`,
+        transitionDelay: `${adjustedDelay}ms`,
         transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
         willChange: 'transform, opacity',
       }}

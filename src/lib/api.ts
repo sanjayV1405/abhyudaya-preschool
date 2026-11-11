@@ -3,7 +3,27 @@ import type { Enquiry, EnquirySubmission, EnquiryStatus, Announcement } from '..
 
 // ── Environment & Base URL Configuration ──────────────────────────────────────
 const rawApiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim()
-export const API_BASE = rawApiUrl ? rawApiUrl.replace(/\/+$/, '') : 'http://localhost:5000/api'
+
+const isBrowser = typeof window !== 'undefined'
+const isLocalhost = isBrowser && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+
+/**
+ * Determine API base URL:
+ * - If VITE_API_URL is explicitly configured, use it (trimmed).
+ * - If running locally on localhost, default to 'http://localhost:5000/api'.
+ * - In production on Firebase Hosting, NEVER default to localhost. This prevents Chrome
+ *   from triggering the Private Network Access security popup:
+ *   "wants to access other apps and services on this device".
+ */
+export const API_BASE = rawApiUrl
+  ? rawApiUrl.replace(/\/+$/, '')
+  : isLocalhost
+    ? 'http://localhost:5000/api'
+    : ''
+
+export function isApiConfigured(): boolean {
+  return Boolean(API_BASE && (isLocalhost || !API_BASE.includes('localhost')))
+}
 
 /**
  * Retrieve authorization headers using the current active Supabase session
@@ -50,6 +70,9 @@ function normalizeEntity<T>(doc: any): T {
 // ── Health Check ──────────────────────────────────────────────────────────────
 
 export async function checkApiHealth(): Promise<{ ok: boolean; message?: string }> {
+  if (!isApiConfigured()) {
+    return { ok: false, message: 'API is not configured for this environment' }
+  }
   try {
     const res = await fetch(`${API_BASE}/health`, { method: 'GET', signal: AbortSignal.timeout(3000) })
     if (res.ok) {
@@ -67,6 +90,12 @@ export async function checkApiHealth(): Promise<{ ok: boolean; message?: string 
 export async function createEnquiryApi(
   payload: EnquirySubmission
 ): Promise<{ success: boolean; data?: Enquiry; error?: string }> {
+  if (!isApiConfigured()) {
+    return {
+      success: false,
+      error: 'API endpoint is not configured for this environment.',
+    }
+  }
   try {
     const res = await fetch(`${API_BASE}/enquiries`, {
       method: 'POST',
@@ -97,6 +126,9 @@ export async function getEnquiriesApi(params?: {
   status?: string
   search?: string
 }): Promise<{ success: boolean; data: Enquiry[]; error?: string }> {
+  if (!isApiConfigured()) {
+    return { success: false, data: [] }
+  }
   try {
     const headers = await getAuthHeaders()
     const query = new URLSearchParams()
@@ -124,6 +156,9 @@ export async function updateEnquiryStatusApi(
   id: string,
   status: EnquiryStatus
 ): Promise<{ success: boolean; data?: Enquiry; error?: string }> {
+  if (!isApiConfigured()) {
+    return { success: false, error: 'API is not configured' }
+  }
   try {
     const headers = await getAuthHeaders()
     const res = await fetch(`${API_BASE}/enquiries/${id}/status`, {
@@ -145,6 +180,9 @@ export async function updateEnquiryStatusApi(
 }
 
 export async function deleteEnquiryApi(id: string): Promise<{ success: boolean; error?: string }> {
+  if (!isApiConfigured()) {
+    return { success: false, error: 'API is not configured' }
+  }
   try {
     const headers = await getAuthHeaders()
     const res = await fetch(`${API_BASE}/enquiries/${id}`, {
@@ -171,6 +209,9 @@ export async function getPublicAnnouncementsApi(): Promise<{
   data: Announcement[]
   error?: string
 }> {
+  if (!isApiConfigured()) {
+    return { success: false, data: [] }
+  }
   try {
     const res = await fetch(`${API_BASE}/announcements`, {
       method: 'GET',
@@ -195,6 +236,9 @@ export async function getAdminAnnouncementsApi(): Promise<{
   data: Announcement[]
   error?: string
 }> {
+  if (!isApiConfigured()) {
+    return { success: false, data: [] }
+  }
   try {
     const headers = await getAuthHeaders()
     const res = await fetch(`${API_BASE}/announcements/admin`, {
@@ -218,6 +262,9 @@ export async function getAdminAnnouncementsApi(): Promise<{
 export async function createAnnouncementApi(
   payload: Partial<Announcement>
 ): Promise<{ success: boolean; data?: Announcement; error?: string }> {
+  if (!isApiConfigured()) {
+    return { success: false, error: 'API is not configured' }
+  }
   try {
     const headers = await getAuthHeaders()
     const res = await fetch(`${API_BASE}/announcements`, {
@@ -241,6 +288,9 @@ export async function updateAnnouncementApi(
   id: string,
   payload: Partial<Announcement>
 ): Promise<{ success: boolean; data?: Announcement; error?: string }> {
+  if (!isApiConfigured()) {
+    return { success: false, error: 'API is not configured' }
+  }
   try {
     const headers = await getAuthHeaders()
     const res = await fetch(`${API_BASE}/announcements/${id}`, {
@@ -264,6 +314,9 @@ export async function toggleAnnouncementPublishedApi(
   id: string,
   published?: boolean
 ): Promise<{ success: boolean; data?: Announcement; error?: string }> {
+  if (!isApiConfigured()) {
+    return { success: false, error: 'API is not configured' }
+  }
   try {
     const headers = await getAuthHeaders()
     const res = await fetch(`${API_BASE}/announcements/${id}/publish`, {
@@ -284,6 +337,9 @@ export async function toggleAnnouncementPublishedApi(
 }
 
 export async function deleteAnnouncementApi(id: string): Promise<{ success: boolean; error?: string }> {
+  if (!isApiConfigured()) {
+    return { success: false, error: 'API is not configured' }
+  }
   try {
     const headers = await getAuthHeaders()
     const res = await fetch(`${API_BASE}/announcements/${id}`, {

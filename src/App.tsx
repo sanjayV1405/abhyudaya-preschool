@@ -1651,11 +1651,9 @@ function GalleryPage() {
           onClose={() => setSelectedPhoto(null)}
         />
 
-        {/* Instagram Reel embed section */}
+        {/* Social Media Follow Section */}
         <ScrollReveal delay={200} className="mt-16 bg-white rounded-3xl p-8 shadow-sm border border-[#f0e8f8] text-center">
-          <div className="text-4xl mb-3">📱</div>
-          <h3 className="text-2xl font-black text-[#5a3a8a] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>Watch Us on Instagram</h3>
-          <p className="text-[#6a5a7a] mb-6 text-sm">See reels of our kids dancing, painting and celebrating every day!</p>
+          <h3 className="text-2xl font-black text-[#5a3a8a] mb-6" style={{ fontFamily: 'Nunito, sans-serif' }}>Watch Us on</h3>
           <div className="flex flex-wrap gap-4 justify-center">
             <a
               href="https://www.instagram.com/abhyudayapreschool?igsh=MTFpYmpwejg3OXZxdQ=="
@@ -1676,9 +1674,6 @@ function GalleryPage() {
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
               Follow @abhyudayapreschool
             </a>
-          </div>
-          <div className="mt-6 grid grid-cols-3 gap-3 max-w-sm mx-auto">
-
           </div>
         </ScrollReveal>
       </div>

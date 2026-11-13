@@ -2,27 +2,48 @@ import { supabase } from './supabase'
 import type { Enquiry, EnquirySubmission, EnquiryStatus, Announcement } from '../types/database'
 
 // ── Environment & Base URL Configuration ──────────────────────────────────────
+const PROD_API_URL = 'https://abhyudaya-preschool.onrender.com'
 const rawApiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim()
 
 const isBrowser = typeof window !== 'undefined'
 const isLocalhost = isBrowser && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
 
+function formatApiUrl(url: string): string {
+  const clean = url.trim().replace(/\/+$/, '')
+  if (!clean) return ''
+  return clean.endsWith('/api') ? clean : `${clean}/api`
+}
+
 /**
  * Determine API base URL:
- * - If VITE_API_URL is explicitly configured, use it (trimmed).
- * - If running locally on localhost, default to 'http://localhost:5000/api'.
- * - In production on Firebase Hosting, NEVER default to localhost. This prevents Chrome
- *   from triggering the Private Network Access security popup:
- *   "wants to access other apps and services on this device".
+ * - If VITE_API_URL is configured, use it (ensuring the `/api` prefix is present).
+ * - If running in production (not on localhost browser), guard against any accidental
+ *   localhost URL by routing to the production Render backend.
+ * - If running locally on localhost without VITE_API_URL, default to 'http://localhost:5000/api'.
+ * - Production default: 'https://abhyudaya-preschool.onrender.com/api'.
  */
-export const API_BASE = rawApiUrl
-  ? rawApiUrl.replace(/\/+$/, '')
-  : isLocalhost
-    ? 'http://localhost:5000/api'
-    : ''
+function resolveApiBase(): string {
+  if (rawApiUrl) {
+    if (!isLocalhost && (rawApiUrl.includes('localhost') || rawApiUrl.includes('127.0.0.1'))) {
+      return formatApiUrl(PROD_API_URL)
+    }
+    return formatApiUrl(rawApiUrl)
+  }
+
+  if (isLocalhost) {
+    return 'http://localhost:5000/api'
+  }
+
+  return formatApiUrl(PROD_API_URL)
+}
+
+export const API_BASE = resolveApiBase()
 
 export function isApiConfigured(): boolean {
-  return Boolean(API_BASE && (isLocalhost || !API_BASE.includes('localhost')))
+  if (!API_BASE) return false
+  const browser = typeof window !== 'undefined'
+  const onLocalhost = browser && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  return onLocalhost || !API_BASE.includes('localhost')
 }
 
 /**

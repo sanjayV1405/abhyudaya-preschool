@@ -3,11 +3,18 @@ const Enquiry = require('../models/Enquiry')
 const { isDBConnected } = require('../config/db')
 const { sendMail } = require('../config/mailer')
 
-// All addresses that should receive enquiry notification emails
-const NOTIFICATION_EMAILS = [
-  process.env.NOTIFY_EMAIL || 'daycare@abhyudaya-school.com',
+// Mandatory notification recipients for every enquiry
+const MANDATORY_RECIPIENTS = [
+  'daycare@abhyudaya-school.com',
   'jothisanjay659@gmail.com',
+  'abhyudayapreschool@gmail.com',
 ]
+
+const optionalRecipients = process.env.NOTIFY_EMAIL
+  ? process.env.NOTIFY_EMAIL.split(',').map((e) => e.trim()).filter(Boolean)
+  : []
+
+const NOTIFICATION_EMAILS = Array.from(new Set([...MANDATORY_RECIPIENTS, ...optionalRecipients]))
 
 function sanitizeText(value) {
   if (typeof value !== 'string') return ''

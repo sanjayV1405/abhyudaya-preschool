@@ -1,64 +1,82 @@
 /**
- * Nodemailer transporter configuration for Abhyudaya Preschool
- * Uses Gmail SMTP with App Password (or any SMTP provider via env vars).
+ * Resend Email API client for Abhyudaya Preschool
+ * Uses HTTPS REST API (port 443) to avoid Render's outbound SMTP port blocking.
  *
  * Required environment variables:
- *   MAIL_USER   — Gmail address used as sender (e.g. daycare@abhyudaya-school.com)
- *   MAIL_PASS   — Gmail App Password (16-char, no spaces) for the above account
+ *   RESEND_API_KEY — API key from https://resend.com/api-keys
  *
- * Optional:
- *   MAIL_FROM   — Display name + address shown in "From:" header
- *                 Defaults to: "Abhyudaya Preschool <MAIL_USER>"
+ * Optional environment variables:
+ *   MAIL_FROM      — Verified sender email address
+ *                    Defaults to: "Abhyudaya Preschool <onboarding@resend.dev>"
  */
 
-const nodemailer = require('nodemailer')
+const { Resend } = require('resend')
 
-let _transporter = null
+let _resendClient = null
 
-function getTransporter() {
-  if (_transporter) return _transporter
+function getResendClient() {
+  if (_resendClient) return _resendClient
 
-  const user = process.env.MAIL_USER
-  const pass = process.env.MAIL_PASS
+  const apiKey = process.env.RESEND_API_KEY
 
-  if (!user || !pass) {
+  if (!apiKey) {
     console.warn(
-      '[Mailer] MAIL_USER or MAIL_PASS not set — email notifications are disabled.'
+      '[Mailer] RESEND_API_KEY not set — email notifications are disabled.'
     )
     return null
   }
 
-  _transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user, pass },
-  })
-
-  return _transporter
+  _resendClient = new Resend(apiKey)
+  return _resendClient
 }
 
 /**
- * Send an email notification to multiple recipients.
+ * Send an email notification via Resend HTTPS API.
  *
  * @param {object} options
- * @param {string|string[]} options.to   — Recipient address(es)
- * @param {string}          options.subject
- * @param {string}          options.html — HTML body
- * @param {string}          [options.text] — Plain-text fallback
+ * @param {string|string[]} options.to      — Recipient address or array of addresses
+ * @param {string}          options.subject — Email subject line
+ * @param {string}          options.html    — HTML email body
+ * @param {string}          [options.text]  — Plain-text fallback
  */
 async function sendMail({ to, subject, html, text }) {
-  const transporter = getTransporter()
-  if (!transporter) return // silently skip if not configured
-
-  const from =
-    process.env.MAIL_FROM ||
-    `"Abhyudaya Preschool" <${process.env.MAIL_USER}>`
-
   try {
-    const info = await transporter.sendMail({ from, to, subject, html, text })
-    console.log(`[Mailer] Email sent — MessageId: ${info.messageId}`)
+    const resend = getResendClient()
+    if (!resend) return
+
+    // Ensure `to` is a flat array of non-empty email strings
+    const recipients = Array.isArray(to)
+      ? to.map((e) => (typeof e === 'string' ? e.trim() : '')).filter(Boolean)
+      : typeof to === 'string'
+        ? to.split(',').map((e) => e.trim()).filter(Boolean)
+        : []
+
+    if (recipients.length === 0) {
+      console.warn('[Mailer] No valid recipient addresses provided, skipping send.')
+      return
+    }
+
+    const from =
+      process.env.MAIL_FROM ||
+      'Abhyudaya Preschool <onboarding@resend.dev>'
+
+    const { data, error } = await resend.emails.send({
+      from,
+      to: recipients,
+      subject,
+      html,
+      text,
+    })
+
+    if (error) {
+      console.error('[Mailer] Resend API error:', error.message || error)
+      return
+    }
+
+    console.log(`[Mailer] Email sent successfully via Resend — ID: ${data?.id}`)
   } catch (err) {
-    // Log but never crash the server over a notification failure
-    console.error('[Mailer] Failed to send email:', err.message)
+    // Fail-safe: Email sending must never crash the server or disrupt enquiry submission
+    console.error('[Mailer] Unexpected error sending email via Resend:', err.message)
   }
 }
 

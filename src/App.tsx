@@ -22,6 +22,7 @@ import type {
 import { ScrollReveal } from './components/ScrollReveal'
 import { CountUp } from './components/CountUp'
 import { GalleryLightbox, type GalleryItemData } from './components/GalleryLightbox'
+import PrivacyPolicyPage from './components/PrivacyPolicyPage'
 import {
   Accordion,
   AccordionItem,
@@ -2739,6 +2740,18 @@ function Footer({
                   </button>
                 </li>
               ))}
+              <li>
+                <a
+                  href="/privacy-policy"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setActive('PrivacyPolicy')
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer"
+                >
+                  Privacy Policy
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -2800,6 +2813,17 @@ function Footer({
             >
               Enroll Now
             </button>
+            <span>•</span>
+            <a
+              href="/privacy-policy"
+              onClick={(e) => {
+                e.preventDefault()
+                setActive('PrivacyPolicy')
+              }}
+              className="hover:text-white underline cursor-pointer"
+            >
+              Privacy Policy
+            </a>
             <span>•</span>
             <button
               onClick={onAdminClick || (() => setActive('Admin'))}
@@ -2874,6 +2898,7 @@ const PAGES: Record<string, (props: { setActive: (p: string) => void; onEnrollNo
   Gallery: () => <GalleryPage />,
   Programs: ({ setActive, onEnrollNow }) => <ProgramsPage setActive={setActive} onEnrollNow={onEnrollNow} />,
   Contact: () => <ContactPage />,
+  PrivacyPolicy: ({ setActive, onEnrollNow }) => <PrivacyPolicyPage setActive={setActive} onEnrollNow={onEnrollNow} />,
   Admin: ({ setActive }) => (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#f8f6fc]"><span className="text-3xl animate-pulse">⏳</span></div>}>
       <AdminPage onBackToSite={() => setActive('Home')} />
@@ -2885,6 +2910,7 @@ function getInitialPage(): string {
   if (typeof window !== 'undefined') {
     const path = window.location.pathname.toLowerCase()
     if (path === '/admin' || path.startsWith('/admin/')) return 'Admin'
+    if (path === '/privacy-policy' || path === '/privacy-policy/') return 'PrivacyPolicy'
     if (path === '/about') return 'About'
     if (path === '/programs') return 'Programs'
     if (path === '/gallery') return 'Gallery'
@@ -2906,6 +2932,16 @@ export default function App() {
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
+
+  useEffect(() => {
+    if (active === 'PrivacyPolicy') {
+      document.title = 'Privacy Policy – Abhyudaya Preschool'
+    } else if (active === 'Admin') {
+      document.title = 'Admin Portal – Abhyudaya Preschool'
+    } else {
+      document.title = 'Abhyudaya Preschool & Daycare – Perumanallur'
+    }
+  }, [active])
 
   function scrollToEnquiry() {
     const el = document.getElementById('enquiry-form')
@@ -2941,6 +2977,8 @@ export default function App() {
         window.history.pushState(null, '', '/admin/login')
       } else if (page === 'Home') {
         window.history.pushState(null, '', '/')
+      } else if (page === 'PrivacyPolicy') {
+        window.history.pushState(null, '', '/privacy-policy')
       } else {
         window.history.pushState(null, '', '/' + page.toLowerCase())
       }

@@ -2120,9 +2120,10 @@ function ProgramsPage({
 function ContactPage() {
   const [form, setForm] = useState({
     name: '',
+    phone: '',
+    email: '',
     childName: '',
     childAge: 'Playgroup (2-3 yrs)',
-    phone: '',
     message: '',
   })
   const [submitted, setSubmitted] = useState(false)
@@ -2132,8 +2133,9 @@ function ContactPage() {
   const [visitForm, setVisitForm] = useState({
     name: '',
     phone: '',
+    email: '',
     date: '',
-    slot: '10:00 AM – 11:00 AM',
+    slot: '9:30 AM – 10:30 AM',
     notes: '',
   })
   const [visitSubmitted, setVisitSubmitted] = useState(false)
@@ -2148,6 +2150,7 @@ function ContactPage() {
     const result = await submitEnquiry({
       parent_name: form.name,
       phone: form.phone,
+      email: form.email,
       child_name: form.childName || undefined,
       child_age: form.childAge || undefined,
       message: form.message || undefined,
@@ -2156,7 +2159,7 @@ function ContactPage() {
     setSubmitting(false)
     if (result.success) {
       setSubmitted(true)
-      setForm({ name: '', childName: '', childAge: 'Playgroup (2-3 yrs)', phone: '', message: '' })
+      setForm({ name: '', phone: '', email: '', childName: '', childAge: 'Playgroup (2-3 yrs)', message: '' })
       setTimeout(() => setSubmitted(false), 8000)
       // Send email notification to school (non-blocking — enquiry is already saved)
       sendEnquiryEmail({
@@ -2177,9 +2180,10 @@ function ContactPage() {
     const msg = `Hello Abhyudaya Preschool! 👋
                       I would like to enquire about admissions:
                       • Parent Name: ${form.name || 'Parent'}
+                      • Contact Phone: ${form.phone || 'Not specified'}
+                      • Email Address: ${form.email || 'Not specified'}
                       • Child's Name: ${form.childName || 'Not specified'}
                       • Program / Age: ${form.childAge}
-                      • Contact Phone: ${form.phone || 'Not specified'}
                       • Questions/Note: ${form.message || 'Please share admission details and fee structure.'}`
     const url = `https://wa.me/919788713822?text=${encodeURIComponent(msg)}`
     window.open(url, '_blank')
@@ -2193,6 +2197,7 @@ function ContactPage() {
     const result = await submitCampusVisit({
       parent_name: visitForm.name,
       phone: visitForm.phone,
+      email: visitForm.email,
       preferred_date: visitForm.date || undefined,
       preferred_slot: visitForm.slot || undefined,
       notes: visitForm.notes || undefined,
@@ -2200,13 +2205,13 @@ function ContactPage() {
     setVisitSubmitting(false)
     if (result.success) {
       setVisitSubmitted(true)
-      setVisitForm({ name: '', phone: '', date: '', slot: '10:00 AM – 11:00 AM', notes: '' })
+      setVisitForm({ name: '', phone: '', email: '', date: '', slot: '9:30 AM – 10:30 AM', notes: '' })
       setTimeout(() => setVisitSubmitted(false), 8000)
       // Send email notification to school (non-blocking)
       sendEnquiryEmail({
         parent_name: visitForm.name,
         phone: visitForm.phone,
-        message: `Campus Visit Request\n• Date: ${visitForm.date || 'Flexible'}\n• Slot: ${visitForm.slot}\n• Notes: ${visitForm.notes || 'Looking forward to touring!'}`,
+        message: `Campus Visit Request\n• Email: ${visitForm.email}\n• Date: ${visitForm.date || 'Flexible'}\n• Slot: ${visitForm.slot}\n• Notes: ${visitForm.notes || 'Looking forward to touring!'}`,
         enquiry_type: 'campus_visit',
       }).catch(() => { })
       // Also open WhatsApp for immediate confirmation
@@ -2214,6 +2219,7 @@ function ContactPage() {
                       I have submitted a campus visit request:
                       • Parent Name: ${visitForm.name}
                       • Phone: ${visitForm.phone}
+                      • Email: ${visitForm.email}
                       • Preferred Date: ${visitForm.date || 'Flexible'}
                       • Preferred Time: ${visitForm.slot}
                       • Notes: ${visitForm.notes || 'Looking forward to touring the classrooms!'}`
@@ -2433,21 +2439,6 @@ function ContactPage() {
 
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-[#5a4a6a] uppercase tracking-wider mb-1.5">Program / Age *</label>
-                      <select
-                        value={form.childAge}
-                        onChange={e => setForm({ ...form, childAge: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl border border-[#e0d0f8] focus:outline-none focus:ring-2 focus:ring-[#b48de8] text-sm bg-[#fdfaff] transition-all"
-                      >
-                        <option value="Daycare (1.5+ years)">🍼 Daycare (1.5+ years, 8.30 AM – 7.30 PM)</option>
-                        <option value="Playgroup (2-3 yrs)">🎪 Playgroup (Ages 2 – 3 yrs)</option>
-                        <option value="Nursery (3-4 yrs)">🌱 Nursery (Ages 3 – 4 yrs)</option>
-                        <option value="LKG & UKG (4-6 yrs)">📚 LKG &amp; UKG (Ages 4 – 6 yrs)</option>
-                        <option value="Afterschool Care">🎒 Afterschool Care</option>
-                        <option value="Weekend Care">🌈 Weekend Care</option>
-                      </select>
-                    </div>
-                    <div>
                       <label className="block text-xs font-bold text-[#5a4a6a] uppercase tracking-wider mb-1.5">Phone Number *</label>
                       <input
                         required
@@ -2458,6 +2449,33 @@ function ContactPage() {
                         className="w-full px-4 py-3 rounded-xl border border-[#e0d0f8] focus:outline-none focus:ring-2 focus:ring-[#b48de8] text-sm bg-[#fdfaff] transition-all"
                       />
                     </div>
+                    <div>
+                      <label className="block text-xs font-bold text-[#5a4a6a] uppercase tracking-wider mb-1.5">Email Address *</label>
+                      <input
+                        required
+                        type="email"
+                        value={form.email}
+                        onChange={e => setForm({ ...form, email: e.target.value })}
+                        placeholder="e.g. parent@example.com"
+                        className="w-full px-4 py-3 rounded-xl border border-[#e0d0f8] focus:outline-none focus:ring-2 focus:ring-[#b48de8] text-sm bg-[#fdfaff] transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#5a4a6a] uppercase tracking-wider mb-1.5">Program / Age *</label>
+                    <select
+                      value={form.childAge}
+                      onChange={e => setForm({ ...form, childAge: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl border border-[#e0d0f8] focus:outline-none focus:ring-2 focus:ring-[#b48de8] text-sm bg-[#fdfaff] transition-all"
+                    >
+                      <option value="Daycare (1.5+ years)">🍼 Daycare (1.5+ years, 8.30 AM – 7.30 PM)</option>
+                      <option value="Playgroup (2-3 yrs)">🎪 Playgroup (Ages 2 – 3 yrs)</option>
+                      <option value="Nursery (3-4 yrs)">🌱 Nursery (Ages 3 – 4 yrs)</option>
+                      <option value="LKG & UKG (4-6 yrs)">📚 LKG &amp; UKG (Ages 4 – 6 yrs)</option>
+                      <option value="Afterschool Care">🎒 Afterschool Care</option>
+                      <option value="Weekend Care">🌈 Weekend Care</option>
+                    </select>
                   </div>
 
                   <div>
@@ -2543,6 +2561,14 @@ function ContactPage() {
                     value={visitForm.phone}
                     onChange={e => setVisitForm({ ...visitForm, phone: e.target.value })}
                     placeholder="Phone / WhatsApp Number *"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#e0d0f8] focus:outline-none focus:ring-2 focus:ring-[#b48de8] text-xs sm:text-sm bg-[#fdfaff] transition-all"
+                  />
+                  <input
+                    required
+                    type="email"
+                    value={visitForm.email}
+                    onChange={e => setVisitForm({ ...visitForm, email: e.target.value })}
+                    placeholder="Email Address *"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-[#e0d0f8] focus:outline-none focus:ring-2 focus:ring-[#b48de8] text-xs sm:text-sm bg-[#fdfaff] transition-all"
                   />
                   <div className="grid grid-cols-2 gap-2">

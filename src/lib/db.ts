@@ -44,9 +44,9 @@ function validateEnquiry(data: EnquirySubmission): string | null {
   const phone = sanitizeText(data.phone)
   if (!PHONE_REGEX.test(phone)) return 'Please enter a valid phone number (7–15 digits).'
 
-  if (data.email) {
-    const email = sanitizeText(data.email)
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Please enter a valid email address.'
+  const email = sanitizeText(data.email)
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return 'Please enter a valid email address.'
   }
 
   return null // valid
@@ -168,6 +168,7 @@ export async function sendEnquiryEmail(data: {
 export interface CampusVisitSubmission {
   parent_name: string
   phone: string
+  email: string
   preferred_date?: string
   preferred_slot?: string
   notes?: string
@@ -177,6 +178,7 @@ export async function submitCampusVisit(rawData: CampusVisitSubmission): Promise
   return submitEnquiry({
     parent_name: rawData.parent_name,
     phone: rawData.phone,
+    email: rawData.email,
     message: rawData.notes,
     enquiry_type: 'campus_visit',
     preferred_date: rawData.preferred_date,

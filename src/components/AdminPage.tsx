@@ -2018,6 +2018,16 @@ Thank you for your enquiry regarding admissions${child}. We would love to assist
                   </a>
                 </div>
                 <div>
+                  <span className="text-[#8a7a9a] font-bold block">Email:</span>
+                  {selectedEnquiry.email ? (
+                    <a href={`mailto:${selectedEnquiry.email}`} className="font-bold text-[#5a3a8a] hover:underline break-all">
+                      {selectedEnquiry.email}
+                    </a>
+                  ) : (
+                    <span className="text-gray-400">Not provided</span>
+                  )}
+                </div>
+                <div>
                   <span className="text-[#8a7a9a] font-bold block">Child's Name:</span>
                   <span>{selectedEnquiry.child_name || 'Not specified'}</span>
                 </div>

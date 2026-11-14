@@ -46,7 +46,7 @@ function getGmailClient() {
 /**
  * Encode an email into RFC 2822 format and convert to base64url string for Gmail API.
  */
-function createRawMessage({ from, to, subject, html, text }) {
+function createRawMessage({ from, to, replyTo, subject, html, text }) {
   const toHeader = Array.isArray(to) ? to.join(', ') : to
   const utf8Subject = `=?utf-8?B?${Buffer.from(subject, 'utf-8').toString('base64')}?=`
   const boundary = `__abhyudaya_boundary_${Date.now()}__`
@@ -54,6 +54,13 @@ function createRawMessage({ from, to, subject, html, text }) {
   const messageLines = [
     `From: ${from}`,
     `To: ${toHeader}`,
+  ]
+
+  if (replyTo) {
+    messageLines.push(`Reply-To: ${replyTo}`)
+  }
+
+  messageLines.push(
     `Subject: ${utf8Subject}`,
     'MIME-Version: 1.0',
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
@@ -71,7 +78,7 @@ function createRawMessage({ from, to, subject, html, text }) {
     html || '',
     '',
     `--${boundary}--`,
-  ]
+  )
 
   const rawMime = messageLines.join('\r\n')
 
@@ -87,11 +94,12 @@ function createRawMessage({ from, to, subject, html, text }) {
  *
  * @param {object} options
  * @param {string|string[]} options.to      — Recipient address or array of addresses
+ * @param {string}          [options.replyTo] — Reply-To address (e.g. parent's email)
  * @param {string}          options.subject — Email subject line
  * @param {string}          options.html    — HTML email body
  * @param {string}          [options.text]  — Plain-text fallback
  */
-async function sendMail({ to, subject, html, text }) {
+async function sendMail({ to, replyTo, subject, html, text }) {
   try {
     const gmail = getGmailClient()
     if (!gmail) return
@@ -114,6 +122,7 @@ async function sendMail({ to, subject, html, text }) {
     const raw = createRawMessage({
       from,
       to: recipients,
+      replyTo,
       subject,
       html,
       text,

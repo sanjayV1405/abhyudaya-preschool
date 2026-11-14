@@ -50,6 +50,7 @@ async function createEnquiry(req, res, next) {
     // Basic required fields check
     const cleanName = sanitizeText(parent_name)
     const cleanPhone = sanitizeText(phone)
+    const cleanEmail = email ? sanitizeText(email).toLowerCase() : ''
 
     if (!cleanName || cleanName.length < 2) {
       return res.status(400).json({
@@ -65,10 +66,17 @@ async function createEnquiry(req, res, next) {
       })
     }
 
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please provide a valid email address',
+      })
+    }
+
     const payload = {
       parent_name: cleanName,
       phone: cleanPhone,
-      email: email ? sanitizeText(email).toLowerCase() : undefined,
+      email: cleanEmail,
       child_name: child_name ? sanitizeText(child_name) : undefined,
       child_age: child_age ? sanitizeText(child_age) : undefined,
       program_id: program_id ? sanitizeText(program_id) : undefined,
@@ -109,14 +117,22 @@ async function createEnquiry(req, res, next) {
         <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;font-weight:600;color:#222;">${payload.phone}</td>
       </tr>
       <tr>
+        <td style="padding:10px 8px;color:#555;border-bottom:1px solid #f0f0f0;"><strong>Email Address</strong></td>
+        <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;font-weight:600;color:#222;"><a href="mailto:${payload.email}" style="color:#2d7a3a;text-decoration:none;">${payload.email}</a></td>
+      </tr>
+      <tr style="background:#f9f9f9;">
         <td style="padding:10px 8px;color:#555;border-bottom:1px solid #f0f0f0;"><strong>Visit Date</strong></td>
         <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;font-weight:600;color:#222;">${visitDate}</td>
       </tr>
-      <tr style="background:#f9f9f9;">
+      <tr>
         <td style="padding:10px 8px;color:#555;"><strong>Preferred Time</strong></td>
         <td style="padding:10px 8px;font-weight:600;color:#222;">${visitTime}</td>
       </tr>
     </table>
+    <div style="margin-top:20px;padding:12px;background:#f0f8f0;border-left:4px solid #2d7a3a;border-radius:4px;">
+      <p style="margin:0;font-size:13px;color:#555;">Submitted at: <strong>${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST</strong></p>
+      <p style="margin:4px 0 0;font-size:13px;color:#555;">💡 <em>You can click Reply in your email client to respond directly to <strong>${payload.parent_name}</strong> (${payload.email}).</em></p>
+    </div>
   </div>
   <div style="background:#f4f4f4;padding:12px;text-align:center;font-size:12px;color:#999;">
     Abhyudaya Preschool &amp; Daycare · Coimbatore · <a href="https://abhyudaya-preschool.web.app" style="color:#2d7a3a;">abhyudaya-preschool.web.app</a>
@@ -127,10 +143,12 @@ async function createEnquiry(req, res, next) {
         `New Campus Tour Booking — Abhyudaya Preschool\n\n` +
         `Parent Name: ${payload.parent_name}\n` +
         `Phone Number: ${payload.phone}\n` +
+        `Email Address: ${payload.email}\n` +
         `Visit Date: ${visitDate}\n` +
-        `Preferred Time: ${visitTime}`
+        `Preferred Time: ${visitTime}\n\n` +
+        `Reply directly to this email to respond to ${payload.parent_name} (${payload.email}).`
     } else {
-      // Existing Admission Enquiry Email Template (Preserved)
+      // Existing Admission Enquiry Email Template (Preserved, with Email guaranteed)
       const enquiryTypeLabel = 'Admission Enquiry'
       emailSubject = `📋 New ${enquiryTypeLabel} from ${payload.parent_name}`
 
@@ -144,7 +162,7 @@ async function createEnquiry(req, res, next) {
     <table style="width:100%;border-collapse:collapse;font-size:15px;">
       <tr><td style="padding:8px;color:#555;width:40%;"><strong>Parent Name</strong></td><td style="padding:8px;">${payload.parent_name}</td></tr>
       <tr style="background:#f9f9f9;"><td style="padding:8px;color:#555;"><strong>Phone / WhatsApp</strong></td><td style="padding:8px;">${payload.phone}</td></tr>
-      ${payload.email ? `<tr><td style="padding:8px;color:#555;"><strong>Email</strong></td><td style="padding:8px;">${payload.email}</td></tr>` : ''}
+      <tr><td style="padding:8px;color:#555;"><strong>Email Address</strong></td><td style="padding:8px;"><a href="mailto:${payload.email}" style="color:#2d7a3a;text-decoration:none;">${payload.email}</a></td></tr>
       ${payload.child_name ? `<tr style="background:#f9f9f9;"><td style="padding:8px;color:#555;"><strong>Child Name</strong></td><td style="padding:8px;">${payload.child_name}</td></tr>` : ''}
       ${payload.child_age ? `<tr><td style="padding:8px;color:#555;"><strong>Child Age</strong></td><td style="padding:8px;">${payload.child_age}</td></tr>` : ''}
       ${payload.program_id ? `<tr style="background:#f9f9f9;"><td style="padding:8px;color:#555;"><strong>Program</strong></td><td style="padding:8px;">${payload.program_id}</td></tr>` : ''}
@@ -155,6 +173,7 @@ async function createEnquiry(req, res, next) {
     <div style="margin-top:20px;padding:12px;background:#f0f8f0;border-left:4px solid #2d7a3a;border-radius:4px;">
       <p style="margin:0;font-size:13px;color:#555;">Submitted at: <strong>${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST</strong></p>
       <p style="margin:4px 0 0;font-size:13px;color:#555;">Record ID: <code>${newEnquiry._id}</code></p>
+      <p style="margin:4px 0 0;font-size:13px;color:#555;">💡 <em>You can click Reply in your email client to respond directly to <strong>${payload.parent_name}</strong> (${payload.email}).</em></p>
     </div>
   </div>
   <div style="background:#f4f4f4;padding:12px;text-align:center;font-size:12px;color:#999;">
@@ -166,19 +185,21 @@ async function createEnquiry(req, res, next) {
         `New ${enquiryTypeLabel} — Abhyudaya Preschool\n\n` +
         `Parent: ${payload.parent_name}\n` +
         `Phone: ${payload.phone}\n` +
-        (payload.email ? `Email: ${payload.email}\n` : '') +
+        `Email: ${payload.email}\n` +
         (payload.child_name ? `Child: ${payload.child_name}\n` : '') +
         (payload.child_age ? `Age: ${payload.child_age}\n` : '') +
         (payload.program_id ? `Program: ${payload.program_id}\n` : '') +
         (payload.preferred_date ? `Preferred Date: ${payload.preferred_date}\n` : '') +
         (payload.preferred_slot ? `Preferred Slot: ${payload.preferred_slot}\n` : '') +
         (payload.message ? `Message: ${payload.message}\n` : '') +
-        `\nRecord ID: ${newEnquiry._id}`
+        `\nRecord ID: ${newEnquiry._id}\n\n` +
+        `Reply directly to this email to respond to ${payload.parent_name} (${payload.email}).`
     }
 
     // Fire-and-forget — do not await so the API response is instant
     sendMail({
       to: NOTIFICATION_EMAILS,
+      replyTo: payload.email,
       subject: emailSubject,
       html: emailHtml,
       text: emailText,

@@ -82,10 +82,59 @@ async function createEnquiry(req, res, next) {
     const newEnquiry = await Enquiry.create(payload)
 
     // ── Email Notification ────────────────────────────────────────────────────
-    const enquiryTypeLabel =
-      payload.enquiry_type === 'campus_visit' ? 'Campus Visit' : 'Admission Enquiry'
+    let emailSubject = ''
+    let emailHtml = ''
+    let emailText = ''
 
-    const emailHtml = `
+    if (payload.enquiry_type === 'campus_visit') {
+      const visitDate = payload.preferred_date || 'Flexible / Not specified'
+      const visitTime = payload.preferred_slot || 'Flexible / Not specified'
+
+      emailSubject = `🏫 New Campus Tour Booking: ${payload.parent_name}`
+
+      emailHtml = `
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;">
+  <div style="background:#2d7a3a;padding:20px;text-align:center;">
+    <h2 style="color:#fff;margin:0;">🏫 New Campus Tour Booking</h2>
+    <p style="color:#c8f5cf;margin:4px 0 0;">Abhyudaya Preschool — Campus Visit Request</p>
+  </div>
+  <div style="padding:24px;background:#fff;">
+    <table style="width:100%;border-collapse:collapse;font-size:15px;">
+      <tr>
+        <td style="padding:10px 8px;color:#555;width:40%;border-bottom:1px solid #f0f0f0;"><strong>Parent Name</strong></td>
+        <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;font-weight:600;color:#222;">${payload.parent_name}</td>
+      </tr>
+      <tr style="background:#f9f9f9;">
+        <td style="padding:10px 8px;color:#555;border-bottom:1px solid #f0f0f0;"><strong>Phone Number</strong></td>
+        <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;font-weight:600;color:#222;">${payload.phone}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 8px;color:#555;border-bottom:1px solid #f0f0f0;"><strong>Visit Date</strong></td>
+        <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;font-weight:600;color:#222;">${visitDate}</td>
+      </tr>
+      <tr style="background:#f9f9f9;">
+        <td style="padding:10px 8px;color:#555;"><strong>Preferred Time</strong></td>
+        <td style="padding:10px 8px;font-weight:600;color:#222;">${visitTime}</td>
+      </tr>
+    </table>
+  </div>
+  <div style="background:#f4f4f4;padding:12px;text-align:center;font-size:12px;color:#999;">
+    Abhyudaya Preschool &amp; Daycare · Coimbatore · <a href="https://abhyudaya-preschool.web.app" style="color:#2d7a3a;">abhyudaya-preschool.web.app</a>
+  </div>
+</div>`
+
+      emailText =
+        `New Campus Tour Booking — Abhyudaya Preschool\n\n` +
+        `Parent Name: ${payload.parent_name}\n` +
+        `Phone Number: ${payload.phone}\n` +
+        `Visit Date: ${visitDate}\n` +
+        `Preferred Time: ${visitTime}`
+    } else {
+      // Existing Admission Enquiry Email Template (Preserved)
+      const enquiryTypeLabel = 'Admission Enquiry'
+      emailSubject = `📋 New ${enquiryTypeLabel} from ${payload.parent_name}`
+
+      emailHtml = `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;">
   <div style="background:#2d7a3a;padding:20px;text-align:center;">
     <h2 style="color:#fff;margin:0;">📋 New ${enquiryTypeLabel}</h2>
@@ -113,23 +162,24 @@ async function createEnquiry(req, res, next) {
   </div>
 </div>`
 
-    const emailText =
-      `New ${enquiryTypeLabel} — Abhyudaya Preschool\n\n` +
-      `Parent: ${payload.parent_name}\n` +
-      `Phone: ${payload.phone}\n` +
-      (payload.email ? `Email: ${payload.email}\n` : '') +
-      (payload.child_name ? `Child: ${payload.child_name}\n` : '') +
-      (payload.child_age ? `Age: ${payload.child_age}\n` : '') +
-      (payload.program_id ? `Program: ${payload.program_id}\n` : '') +
-      (payload.preferred_date ? `Preferred Date: ${payload.preferred_date}\n` : '') +
-      (payload.preferred_slot ? `Preferred Slot: ${payload.preferred_slot}\n` : '') +
-      (payload.message ? `Message: ${payload.message}\n` : '') +
-      `\nRecord ID: ${newEnquiry._id}`
+      emailText =
+        `New ${enquiryTypeLabel} — Abhyudaya Preschool\n\n` +
+        `Parent: ${payload.parent_name}\n` +
+        `Phone: ${payload.phone}\n` +
+        (payload.email ? `Email: ${payload.email}\n` : '') +
+        (payload.child_name ? `Child: ${payload.child_name}\n` : '') +
+        (payload.child_age ? `Age: ${payload.child_age}\n` : '') +
+        (payload.program_id ? `Program: ${payload.program_id}\n` : '') +
+        (payload.preferred_date ? `Preferred Date: ${payload.preferred_date}\n` : '') +
+        (payload.preferred_slot ? `Preferred Slot: ${payload.preferred_slot}\n` : '') +
+        (payload.message ? `Message: ${payload.message}\n` : '') +
+        `\nRecord ID: ${newEnquiry._id}`
+    }
 
     // Fire-and-forget — do not await so the API response is instant
     sendMail({
       to: NOTIFICATION_EMAILS,
-      subject: `📋 New ${enquiryTypeLabel} from ${payload.parent_name}`,
+      subject: emailSubject,
       html: emailHtml,
       text: emailText,
     })

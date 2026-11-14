@@ -318,3 +318,4 @@ export default function PrivacyPolicyPage({ setActive, onEnrollNow }: PrivacyPol
     </div>
   )
 }
+

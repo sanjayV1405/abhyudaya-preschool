@@ -2960,12 +2960,40 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]')
+    if (!canonical) {
+      canonical = document.createElement('link')
+      canonical.rel = 'canonical'
+      document.head.appendChild(canonical)
+    }
+
+    const domain = 'https://abhyudaya-school.com'
+
     if (active === 'PrivacyPolicy') {
       document.title = 'Privacy Policy – Abhyudaya Preschool'
+      canonical.href = `${domain}/privacy-policy`
     } else if (active === 'Admin') {
       document.title = 'Admin Portal – Abhyudaya Preschool'
+    } else if (active === 'About') {
+      document.title = 'Abhyudaya Preschool & Daycare – Perumanallur'
+      canonical.href = `${domain}/about`
+    } else if (active === 'Programs') {
+      document.title = 'Abhyudaya Preschool & Daycare – Perumanallur'
+      canonical.href = `${domain}/programs`
+    } else if (active === 'Gallery') {
+      document.title = 'Abhyudaya Preschool & Daycare – Perumanallur'
+      canonical.href = `${domain}/gallery`
+    } else if (active === 'Contact') {
+      document.title = 'Abhyudaya Preschool & Daycare – Perumanallur'
+      canonical.href = `${domain}/contact`
     } else {
       document.title = 'Abhyudaya Preschool & Daycare – Perumanallur'
+      canonical.href = `${domain}/`
+    }
+
+    const ogUrl = document.querySelector<HTMLMetaElement>('meta[property="og:url"]')
+    if (ogUrl && canonical.href) {
+      ogUrl.content = canonical.href
     }
   }, [active])
 

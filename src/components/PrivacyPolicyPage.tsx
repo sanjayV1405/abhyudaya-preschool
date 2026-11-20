@@ -9,6 +9,14 @@ interface PrivacyPolicyPageProps {
 export default function PrivacyPolicyPage({ setActive, onEnrollNow }: PrivacyPolicyPageProps) {
   useEffect(() => {
     document.title = 'Privacy Policy – Abhyudaya Preschool'
+    const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]')
+    if (canonical) {
+      canonical.href = 'https://abhyudaya-school.com/privacy-policy'
+    }
+    const ogUrl = document.querySelector<HTMLMetaElement>('meta[property="og:url"]')
+    if (ogUrl) {
+      ogUrl.content = 'https://abhyudaya-school.com/privacy-policy'
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
 

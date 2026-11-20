@@ -4,4 +4,4 @@ Allow: /
 Disallow: /admin
 
 # Sitemap URL
-Sitemap: https://abhyudaya-preschool.web.app/sitemap.xml
+Sitemap: https://abhyudaya-school.com/sitemap.xml
